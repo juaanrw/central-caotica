@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  /* Industrial warning stripes */
+  .hazard-stripes {
+    background: repeating-linear-gradient(
+      -45deg,
+      #FFD600,
+      #FFD600 12px,
+      #121316 12px,
+      #121316 24px
+    );
+  }
+
+  .hazard-stripes-red {
+    background: repeating-linear-gradient(
+      -45deg,
+      #FF2A2A,
+      #FF2A2A 12px,
+      #121316 12px,
+      #121316 24px
+    );
+  }
+
+  /* CRT Scanline effect */
+  .crt-scanlines {
+    background: linear-gradient(
+      rgba(18, 19, 22, 0) 50%, 
+      rgba(0, 0, 0, 0.25) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+  }
+
+  /* Terminal glowing text */
+  .text-glow-green {
+    text-shadow: 0 0 8px rgba(0, 255, 102, 0.8), 0 0 20px rgba(0, 255, 102, 0.4);
+  }
+
+  .text-glow-yellow {
+    text-shadow: 0 0 8px rgba(255, 214, 0, 0.8), 0 0 20px rgba(255, 214, 0, 0.4);
+  }
+
+  .text-glow-red {
+    text-shadow: 0 0 8px rgba(255, 42, 42, 0.8), 0 0 20px rgba(255, 42, 42, 0.4);
+  }
+}
+
+/* Base resets for mobile game feel */
+* {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: #121316;
+  color: #f4e8c1;
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+}
+
+#root {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}

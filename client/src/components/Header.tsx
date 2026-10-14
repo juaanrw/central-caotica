@@ -1,0 +1,107 @@
+import React, { useEffect, useState } from 'react';
+import { Radiation, Volume2, VolumeX, ShieldAlert, Timer } from 'lucide-react';
+import { RoomState } from '../types';
+import { sound } from '../soundEngine';
+
+interface HeaderProps {
+  room: RoomState | null;
+  playerName: string;
+}
+
+export const Header: React.FC<HeaderProps> = ({ room, playerName }) => {
+  const [isMuted, setIsMuted] = useState(sound.getMuted());
+  const [elapsed, setElapsed] = useState(0);
+
+  const toggleSound = () => {
+    const next = !isMuted;
+    sound.setMuted(next);
+    setIsMuted(next);
+    if (!next) {
+      sound.playClick();
+    }
+  };
+
+  // Timer loop for active game rounds
+  useEffect(() => {
+    if (!room || room.phase === 'LOBBY' || room.phase === 'SUMMARY') {
+      setElapsed(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setElapsed(Date.now() - room.roundStartTime);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [room?.phase, room?.roundStartTime]);
+
+  const stability = room?.currentStability ?? 1000;
+  const stabilityPercent = Math.max(0, Math.min(100, Math.round((stability / 1000) * 100)));
+
+  const stabilityColor =
+    stability > 600 ? 'bg-[#00FF66]' : stability > 300 ? 'bg-[#FFD600]' : 'bg-[#FF2A2A]';
+
+  return (
+    <header className="w-full bg-[#1C1E24] border-b-4 border-black px-3 py-2 flex flex-col gap-1.5 shrink-0 z-30 shadow-brutal select-none">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="bg-[#FFD600] text-black p-1 rounded-sm border-2 border-black flex items-center justify-center animate-pulse-fast">
+            <Radiation className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xs tracking-wider uppercase font-extrabold text-[#FFD600]">
+              CENTRAL CAÓTICA
+            </h1>
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-300">
+              {room && (
+                <span className="bg-black/60 px-1 py-0.5 border border-gray-600 rounded text-[#00FF66]">
+                  SALA: {room.code}
+                </span>
+              )}
+              <span className="truncate max-w-[100px] text-gray-200">
+                {playerName || 'Anónimo'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {room && room.phase !== 'LOBBY' && room.phase !== 'SUMMARY' && (
+            <div className="flex items-center gap-1 bg-black px-2 py-1 border border-gray-700 rounded text-xs text-[#00F0FF] font-mono">
+              <Timer className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '3s' }} />
+              <span>{(elapsed / 1000).toFixed(1)}s</span>
+            </div>
+          )}
+
+          <button
+            onClick={toggleSound}
+            className="p-1.5 bg-[#2A2D37] border-2 border-black hover:bg-[#3F4452] active:translate-y-0.5 text-gray-200 transition-all"
+            title={isMuted ? 'Activar Sonido' : 'Silenciar'}
+          >
+            {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-[#00FF66]" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Stability Bar during game */}
+      {room && room.phase !== 'LOBBY' && room.phase !== 'SUMMARY' && (
+        <div className="w-full bg-black/80 border-2 border-black p-1 rounded">
+          <div className="flex justify-between text-[10px] uppercase font-bold text-gray-300 mb-0.5">
+            <span className="flex items-center gap-1">
+              <ShieldAlert className="w-3 h-3 text-[#FFD600]" /> Estabilidad del Núcleo
+            </span>
+            <span className={stability < 300 ? 'text-[#FF2A2A] animate-pulse' : 'text-[#00FF66]'}>
+              {stability} PTS ({stabilityPercent}%)
+            </span>
+          </div>
+          <div className="w-full h-2.5 bg-gray-900 border border-gray-700 overflow-hidden relative">
+            <div
+              className={`h-full transition-all duration-300 ${stabilityColor}`}
+              style={{ width: `${stabilityPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+    </header>
+  );
+};
