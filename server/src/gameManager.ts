@@ -4,32 +4,47 @@ import {
   ActionType, 
   Round1Step, 
   Round2State, 
-  Round3Question, 
   TriviaOption,
   AwardInfo
 } from './types';
-import { TRIVIA_BANK, AZ5_RULES } from './questions';
+import { 
+  GENERAL_CULTURE_TRIVIA, 
+  AZ5_RULES, 
+  MANUAL_PART_A_RULES, 
+  MANUAL_PART_B_RULES, 
+  MANUAL_FULL_RULES 
+} from './questions';
 
-const ACTIONS: { type: ActionType; title: string; instruction: string }[] = [
+const ACTIONS: { type: ActionType; title: string; instructionPhrase: string }[] = [
   {
     type: 'BUTTON',
     title: 'BOTÓN ROJO DE EMERGENCIA',
-    instruction: '¡PULSA EL BOTÓN ROJO DE DESCARGA!'
+    instructionPhrase: 'pulsar el botón rojo de emergencia'
   },
   {
     type: 'VALVE',
     title: 'VÁLVULA DE REFRIGERACIÓN',
-    instruction: '¡MANTÉN PULSADA LA VÁLVULA DURANTE 2 SEGUNDOS!'
+    instructionPhrase: 'mantener pulsada la válvula durante 2 segundos'
   },
   {
     type: 'SLIDER',
-    title: 'PALANCA DE BARRAS DE GRAFITO',
-    instruction: '¡SUBE LA PALANCA DE CONTROL AL 100%!'
+    title: 'PALANCA DE BARRAS',
+    instructionPhrase: 'subir la palanca de control al 100%'
   },
   {
     type: 'PUMP',
     title: 'BOMBA MANUAL AUXILIAR',
-    instruction: '¡BOMBEO RÁPIDO: DALE 5 TOQUES SEGUIDOS!'
+    instructionPhrase: 'bombear rápido (5 toques seguidos)'
+  },
+  {
+    type: 'SHAKE',
+    title: 'SENSOR DE MOVIMIENTO',
+    instructionPhrase: 'agitar el móvil con fuerza'
+  },
+  {
+    type: 'SHOUT',
+    title: 'SENSOR ACÚSTICO',
+    instructionPhrase: 'gritar al micrófono'
   }
 ];
 
@@ -190,12 +205,16 @@ export class GameManager {
 
     const players = room.players;
     const senderIdx = Math.floor(Math.random() * players.length);
-    let executorIdx = Math.floor(Math.random() * (players.length - 1));
-    if (executorIdx >= senderIdx) executorIdx++;
+    // Executor can be ANY player, including the sender themself!
+    const executorIdx = Math.floor(Math.random() * players.length);
 
     const sender = players[senderIdx];
     const executor = players[executorIdx];
     const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+
+    const instructionText = executor.id === sender.id
+      ? `¡${executor.name.toUpperCase()} TIENE QUE ${action.instructionPhrase.toUpperCase()}! (¡TE TOCA A TI!)`
+      : `¡${executor.name.toUpperCase()} TIENE QUE ${action.instructionPhrase.toUpperCase()}!`;
 
     const step: Round1Step = {
       stepNumber,
@@ -205,7 +224,7 @@ export class GameManager {
       executorName: executor.name,
       targetAction: action.type,
       actionTitle: action.title,
-      actionInstruction: `¡ORDENA A ${executor.name.toUpperCase()} QUE ACCIONE: ${action.title}! (${action.instruction})`,
+      actionInstruction: instructionText,
       startTime: Date.now()
     };
 
@@ -213,7 +232,7 @@ export class GameManager {
 
     // If executor is a bot, schedule bot action
     if (executor.isBot) {
-      const delay = Math.floor(Math.random() * 800 + 1200); // 1.2 to 2.0s for snappy testing
+      const delay = Math.floor(Math.random() * 800 + 1200);
       const timeout = setTimeout(() => {
         this.completeRound1Action(room.code, executor.id, action.type);
       }, delay);
@@ -226,12 +245,20 @@ export class GameManager {
     if (!room || room.phase !== 'ROUND_1' || !room.round1) return false;
 
     const step = room.round1;
-    if (step.executorId !== playerId) {
-      return false; // Not your turn
-    }
-
     const player = room.players.find(p => p.id === playerId);
     if (!player) return false;
+
+    // If not executor: penalty for false touch!
+    if (step.executorId !== playerId) {
+      player.stats.mistakes++;
+      room.currentStability = Math.max(50, room.currentStability - 40);
+      this.emit(room, 'actionError', { 
+        playerId, 
+        message: `¡${player.name} accionó mandos cuando la orden era para ${step.executorName}!` 
+      });
+      this.emit(room, 'stateUpdate', room);
+      return false;
+    }
 
     if (action !== step.targetAction) {
       // Wrong action!
@@ -239,7 +266,7 @@ export class GameManager {
       room.currentStability = Math.max(50, room.currentStability - 50);
       this.emit(room, 'actionError', { 
         playerId, 
-        message: `¡${player.name} cometió un error operando los controles!` 
+        message: `¡${player.name} accionó el control equivocado!` 
       });
       this.emit(room, 'stateUpdate', room);
       return false;
@@ -274,7 +301,7 @@ export class GameManager {
     return true;
   }
 
-  // --- ROUND 2: PANEL AZ-5 ---
+  // --- ROUND 2: PANEL AZ-5 CON REGLAS Y ROLES PARTICIONADOS ---
 
   private initRound2(room: RoomState) {
     this.clearBotTimeouts(room.code);
@@ -283,13 +310,27 @@ export class GameManager {
     room.roundStartTime = Date.now();
     room.botRadioMessage = undefined;
 
-    // Assign roles dynamically
+    const count = room.players.length;
     const shuffled = [...room.players].sort(() => Math.random() - 0.5);
-    const numTecnicos = shuffled.length >= 4 ? 2 : 1;
 
-    shuffled.forEach((p, idx) => {
-      p.role = idx < numTecnicos ? 'TECNICO' : 'INGENIERO';
-    });
+    // Dynamic role assignment based on player count:
+    // 2 players: 1 TECNICO_TOTAL, 1 INGENIERO_TOTAL
+    // 3 players: 1 TECNICO_TOTAL, 1 INGENIERO_A, 1 INGENIERO_B
+    // 4 players: 1 TECNICO_ALFA_BETA, 1 TECNICO_GAMMA_DELTA, 1 INGENIERO_A, 1 INGENIERO_B
+    if (count === 2) {
+      shuffled[0].role = 'TECNICO_TOTAL';
+      shuffled[1].role = 'INGENIERO_TOTAL';
+    } else if (count === 3) {
+      shuffled[0].role = 'TECNICO_TOTAL';
+      shuffled[1].role = 'INGENIERO_A';
+      shuffled[2].role = 'INGENIERO_B';
+    } else {
+      // 4 or more players
+      shuffled[0].role = 'TECNICO_ALFA_BETA';
+      shuffled[1].role = 'TECNICO_GAMMA_DELTA';
+      shuffled[2].role = 'INGENIERO_A';
+      shuffled[3].role = 'INGENIERO_B';
+    }
 
     // Select random rule from AZ5_RULES
     const chosenRule = AZ5_RULES[Math.floor(Math.random() * AZ5_RULES.length)];
@@ -297,44 +338,56 @@ export class GameManager {
     // Choose pressure based on rule condition
     let pressure = 50;
     if (chosenRule.pressureCondition === 'ALTA') {
-      pressure = Math.floor(Math.random() * 30 + 55); // 55 to 84 bar
+      pressure = Math.floor(Math.random() * 25 + (chosenRule.pressureThreshold + 4));
     } else {
-      pressure = Math.floor(Math.random() * 25 + 20); // 20 to 45 bar
+      pressure = Math.floor(Math.random() * 20 + (chosenRule.pressureThreshold - 22));
     }
 
     const round2State: Round2State = {
       coreColor: chosenRule.coreColor,
       pressure,
       currentSwitches: { alfa: false, beta: false, gamma: false, delta: false },
-      manualRules: AZ5_RULES.map(r => r.text),
+      manualFull: MANUAL_FULL_RULES,
+      manualPartA: MANUAL_PART_A_RULES,
+      manualPartB: MANUAL_PART_B_RULES,
       requiredSwitches: { ...chosenRule.requiredSwitches },
-      matchedRuleText: chosenRule.text,
       startTime: Date.now()
     };
 
     room.round2 = round2State;
 
     // Bot support:
-    // If bot is Engineer, bot sends helpful advice in radio chatter
-    const botEngineer = room.players.find(p => p.isBot && p.role === 'INGENIERO');
-    if (botEngineer) {
+    // If bot is Engineer A or B or Engineer Total:
+    const botEngA = room.players.find(p => p.isBot && p.role === 'INGENIERO_A');
+    const botEngB = room.players.find(p => p.isBot && p.role === 'INGENIERO_B');
+    const botEngTotal = room.players.find(p => p.isBot && p.role === 'INGENIERO_TOTAL');
+
+    if (botEngA) {
       setTimeout(() => {
-        const activeReqs = Object.entries(chosenRule.requiredSwitches)
-          .filter(([_, val]) => val)
-          .map(([k]) => k.toUpperCase())
-          .join(' y ');
-        room.botRadioMessage = `📻 TRANSMISIÓN DE RADIO (${botEngineer.name.toUpperCase()}): "¡Camarada! El manual indica que con Núcleo ${chosenRule.coreColor} y Presión ${pressure} bar debemos conectar: ${activeReqs || 'NINGUNA'}."`;
+        room.botRadioMessage = `📻 RADIO (${botEngA.name}): "¡Núcleo ${chosenRule.coreColor} detectado! Eso activa la ${chosenRule.phaseCode}."`;
         this.emit(room, 'stateUpdate', room);
-      }, 1000);
+      }, 1200);
+    }
+    if (botEngB) {
+      setTimeout(() => {
+        room.botRadioMessage = `📻 RADIO (${botEngB.name}): "En ${chosenRule.phaseCode} con ${pressure} bar, ¡las válvulas requeridas son: ${chosenRule.valvesText}!"`;
+        this.emit(room, 'stateUpdate', room);
+      }, 2500);
+    }
+    if (botEngTotal) {
+      setTimeout(() => {
+        room.botRadioMessage = `📻 RADIO (${botEngTotal.name}): "¡El manual dice que con Núcleo ${chosenRule.coreColor} y ${pressure} bar conectéis: ${chosenRule.valvesText}!"`;
+        this.emit(room, 'stateUpdate', room);
+      }, 1500);
     }
 
-    // If all technicians are bots, auto-solve
-    const humanTecnico = room.players.some(p => !p.isBot && p.role === 'TECNICO');
+    // If technicians are only bots, auto-stabilize after delay
+    const humanTecnico = room.players.some(p => !p.isBot && (p.role === 'TECNICO_TOTAL' || p.role === 'TECNICO_ALFA_BETA' || p.role === 'TECNICO_GAMMA_DELTA'));
     if (!humanTecnico) {
       const timeout = setTimeout(() => {
         if (room.round2) {
           room.round2.currentSwitches = { ...chosenRule.requiredSwitches };
-          const botTec = room.players.find(p => p.isBot && p.role === 'TECNICO');
+          const botTec = room.players.find(p => p.isBot && (p.role === 'TECNICO_TOTAL' || p.role === 'TECNICO_GAMMA_DELTA'));
           if (botTec) {
             this.stabilizeAZ5(room.code, botTec.id);
           }
@@ -344,9 +397,24 @@ export class GameManager {
     }
   }
 
-  public toggleSwitchAZ5(roomCode: string, switchName: 'alfa' | 'beta' | 'gamma' | 'delta'): RoomState | null {
+  public toggleSwitchAZ5(roomCode: string, playerId: string, switchName: 'alfa' | 'beta' | 'gamma' | 'delta'): RoomState | null {
     const room = this.rooms.get(roomCode);
     if (!room || room.phase !== 'ROUND_2' || !room.round2) return null;
+
+    const player = room.players.find(p => p.id === playerId);
+    if (!player || !player.role) return null;
+
+    // Check switch permissions
+    if (player.role === 'TECNICO_TOTAL') {
+      // Allowed for all 4
+    } else if (player.role === 'TECNICO_ALFA_BETA') {
+      if (switchName !== 'alfa' && switchName !== 'beta') return null;
+    } else if (player.role === 'TECNICO_GAMMA_DELTA') {
+      if (switchName !== 'gamma' && switchName !== 'delta') return null;
+    } else {
+      // Engineers cannot flip switches
+      return null;
+    }
 
     room.round2.currentSwitches[switchName] = !room.round2.currentSwitches[switchName];
     return room;
@@ -357,7 +425,12 @@ export class GameManager {
     if (!room || room.phase !== 'ROUND_2' || !room.round2) return false;
 
     const player = room.players.find(p => p.id === playerId);
-    if (!player) return false;
+    if (!player || !player.role) return false;
+
+    // Check who is allowed to stabilize
+    if (player.role !== 'TECNICO_TOTAL' && player.role !== 'TECNICO_GAMMA_DELTA' && player.role !== 'TECNICO_ALFA_BETA') {
+      return false;
+    }
 
     const cur = room.round2.currentSwitches;
     const req = room.round2.requiredSwitches;
@@ -396,7 +469,7 @@ export class GameManager {
     return true;
   }
 
-  // --- ROUND 3: LLAMADA DEL MINISTERIO ---
+  // --- ROUND 3: LLAMADA DEL MINISTERIO (CULTURA GENERAL) ---
 
   private initRound3(room: RoomState) {
     this.clearBotTimeouts(room.code);
@@ -411,7 +484,7 @@ export class GameManager {
   private initTriviaQuestion(room: RoomState, questionNumber: number) {
     this.clearBotTimeouts(room.code);
 
-    const qRaw = TRIVIA_BANK[Math.floor(Math.random() * TRIVIA_BANK.length)];
+    const qRaw = GENERAL_CULTURE_TRIVIA[Math.floor(Math.random() * GENERAL_CULTURE_TRIVIA.length)];
     const optionsRaw = [
       { text: qRaw.correctAnswer, isCorrect: true },
       ...qRaw.distractors.map(d => ({ text: d, isCorrect: false }))
@@ -440,7 +513,7 @@ export class GameManager {
     if (correctOption) {
       const bot = players.find(p => p.id === correctOption.assignedPlayerId && p.isBot);
       if (bot) {
-        const delay = Math.floor(Math.random() * 800 + 2000); // 2.0 to 2.8s
+        const delay = Math.floor(Math.random() * 800 + 2000);
         const timeout = setTimeout(() => {
           this.submitTriviaAnswer(room.code, bot.id, correctOption.id);
         }, delay);
@@ -528,7 +601,6 @@ export class GameManager {
       rankSubtitle = '¡FUSIÓN TOTAL! La tapa de 1000 toneladas salió volando. Prípiat será una reserva radiactiva durante 20.000 años.';
     }
 
-    // Telemetry and awards
     const playerTelemetry = room.players.map(p => {
       const validTimes = p.stats.reactionTimes;
       const avg = validTimes.length > 0 
@@ -545,7 +617,6 @@ export class GameManager {
 
     const awards: AwardInfo[] = [];
 
-    // Bottleneck (highest avg reaction time among those who completed actions)
     const withTimes = playerTelemetry.filter(p => p.avgReactionMs > 0);
     if (withTimes.length > 0) {
       const slowest = [...withTimes].sort((a, b) => b.avgReactionMs - a.avgReactionMs)[0];
@@ -569,7 +640,6 @@ export class GameManager {
       });
     }
 
-    // Dedo Nervioso (most mistakes)
     const mostMistakes = [...playerTelemetry].sort((a, b) => b.mistakes - a.mistakes)[0];
     if (mostMistakes && mostMistakes.mistakes > 0) {
       awards.push({

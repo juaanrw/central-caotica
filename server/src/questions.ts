@@ -6,146 +6,158 @@ export interface TriviaQuestionRaw {
   distractors: string[];
 }
 
-export const TRIVIA_BANK: TriviaQuestionRaw[] = [
+export const GENERAL_CULTURE_TRIVIA: TriviaQuestionRaw[] = [
   {
-    prompt: "¡INSPECTOR GENERAL AL TELÉFONO! Camarada, ¿cuál es la lectura máxima del dosímetro oficial en turno?",
-    correctAnswer: "3.6 Roentgen (No es genial, pero no es terrible)",
-    distractors: [
-      "15.000 Roentgen (¡Corran por sus vidas!)",
-      "0.0 Roentgen (El aire está más puro que en Crimea)",
-      "Exactamente 42 micro-sieverts por suspiro"
-    ]
+    prompt: "¡INSPECTOR GENERAL AL TELÉFONO! Camarada, ¿cuál es la capital oficial de Australia?",
+    correctAnswer: "Canberra",
+    distractors: ["Sídney", "Melbourne", "Brisbane"]
   },
   {
-    prompt: "¿Qué sustancia es de consumo obligatorio según el manual para tolerar la radiación en turbinas?",
-    correctAnswer: "Vodka de contrabando con gotas de yodo medicinal",
-    distractors: [
-      "Té negro hervido con agua del condensador",
-      "Leche condensada rancia de reserva militar",
-      "Agua destilada bendecida por el Comisario"
-    ]
+    prompt: "¡PREGUNTA DE MOSCÚ! ¿En qué año histórico pisó el ser humano la Luna por primera vez?",
+    correctAnswer: "1969",
+    distractors: ["1961", "1972", "1957"]
   },
   {
-    prompt: "¿Por qué las barras de control del reactor RBMK tienen la punta recubierta de grafito?",
-    correctAnswer: "Para ahorrar 40 rublos por barra en aleación de boro",
-    distractors: [
-      "Para que brillen en la oscuridad si se va la luz",
-      "Diseño aerodinámico inspirado en cohetes Soyuz",
-      "Orden directa del Comité Central de Planificación"
-    ]
+    prompt: "El Ministro de Ciencia exige saber: ¿Cuál es el elemento químico más abundante en el universo?",
+    correctAnswer: "Hidrógeno",
+    distractors: ["Helio", "Oxígeno", "Carbono"]
   },
   {
-    prompt: "¿Cuál es el protocolo oficial si se observa un haz de luz azul ionizada saliendo del techo?",
-    correctAnswer: "Fingir calma absoluta y culpar al turno nocturno",
-    distractors: [
-      "Lanzar baldes de arena y rezar a Lenin",
-      "Sacar fotos turísticas para el diario Pravda",
-      "Declarar una prueba exitosa de iluminación festiva"
-    ]
+    prompt: "¡COMPROBACIÓN CULTURAL! ¿Quién pintó la famosa obra de arte 'La noche estrellada'?",
+    correctAnswer: "Vincent van Gogh",
+    distractors: ["Pablo Picasso", "Claude Monet", "Salvador Dalí"]
   },
   {
-    prompt: "¡La presión del reactor supera los 90 bares! ¿Cuál es la única acción permitida por el Partido?",
-    correctAnswer: "Pulsar el botón AZ-5 y encomendarse al destino",
-    distractors: [
-      "Abrir las ventanas de la sala de control para ventilar",
-      "Patear el manómetro hasta que marque 40 bares",
-      "Esperar la aprobación por carta del Ministro en Moscú"
-    ]
+    prompt: "El Comité exige respuesta: ¿Cuántos huesos componen el esqueleto de un cuerpo humano adulto?",
+    correctAnswer: "206 huesos",
+    distractors: ["180 huesos", "250 huesos", "312 huesos"]
   },
   {
-    prompt: "¿Cómo se apodó a los heroicos soldados que limpiaron el techo del reactor en turnos de 90 segundos?",
-    correctAnswer: "Biorrobots (Liquidadores voluntarios de la Unión)",
-    distractors: [
-      "Cosmonautas terrestres de titanio",
-      "Operarios veloces del primer regimiento",
-      "Comando de palas de plomo blindadas"
-    ]
+    prompt: "¿Cuál es el océano con mayor superficie y profundidad de todo el planeta Tierra?",
+    correctAnswer: "Océano Pacífico",
+    distractors: ["Océano Atlántico", "Océano Índico", "Océano Ártico"]
   },
   {
-    prompt: "¿Por qué el teléfono rojo directo con el Kremlin suena pero nadie contesta?",
-    correctAnswer: "El cable de cobre fue requisado para reparar una tubería",
-    distractors: [
-      "El Secretario General está en su dacha de verano",
-      "Los teléfonos son una distracción burguesa",
-      "El operario de guardia olvidó pagar la factura estatal"
-    ]
+    prompt: "El Inspector pregunta: ¿Qué célebre novela comienza con 'Muchos años después, frente al pelotón de fusilamiento...'?",
+    correctAnswer: "Cien años de soledad",
+    distractors: ["Don Quijote de la Mancha", "Guerra y Paz", "El amor en los tiempos del cólera"]
   },
   {
-    prompt: "¿Qué dice el manual de emergencia si el agua de refrigeración empieza a hervir en el sótano?",
-    correctAnswer: "No hay agua en el sótano: estás teniendo delirios",
-    distractors: [
-      "Excelente para preparar sopa de remolacha comunal",
-      "Apagar el reactor y evacuar en orden alfabético",
-      "Ignorar el vapor mientras no huela a grafito"
-    ]
+    prompt: "¿A qué velocidad aproximada se propaga la luz en el vacío en kilómetros por segundo?",
+    correctAnswer: "300.000 km/s",
+    distractors: ["150.000 km/s", "1.000.000 km/s", "30.000 km/s"]
   },
   {
-    prompt: "¿Quién es el culpable definitivo ante cualquier anomalía o fallo en la frecuencia de 50 Hz?",
-    correctAnswer: "Saboteadores y agentes infiltrados de Occidente",
-    distractors: [
-      "La fatiga de materiales y el diseño deficiente",
-      "El ingeniero en jefe que falsificó su diploma",
-      "Una sobrecarga en la red eléctrica de Kiev"
-    ]
+    prompt: "Pregunta urgente de geografía: ¿En qué continente se encuentra ubicado el desierto del Sahara?",
+    correctAnswer: "África",
+    distractors: ["Asia", "Oceanía", "América"]
   },
   {
-    prompt: "¿Qué ración energética se suministra a los operarios durante el protocolo de alerta máxima?",
-    correctAnswer: "Arenque enlatado de 1978 y pan negro endurecido",
-    distractors: [
-      "Píldoras de cafeína pura de laboratorio militar",
-      "Guiso de patatas calientes del comedor central",
-      "Cigarrillos Pobeda sin filtro y agua con gas"
-    ]
+    prompt: "¿Cuál es el planeta con mayor masa y volumen de todo nuestro sistema solar?",
+    correctAnswer: "Júpiter",
+    distractors: ["Saturno", "Neptuno", "Marte"]
+  },
+  {
+    prompt: "¿Quién formuló en 1915 la Teoría de la Relatividad General?",
+    correctAnswer: "Albert Einstein",
+    distractors: ["Isaac Newton", "Nikola Tesla", "Niels Bohr"]
+  },
+  {
+    prompt: "¿Cuántos lados tiene exactamente la figura geométrica conocida como heptágono?",
+    correctAnswer: "7 lados",
+    distractors: ["6 lados", "8 lados", "9 lados"]
   }
 ];
 
 export const AZ5_RULES: AZ5Rule[] = [
   {
     id: 'R1',
-    text: "SI NÚCLEO ES ROJO Y PRESIÓN > 50 BAR ➔ ACTIVAR ÚNICAMENTE ALFA Y DELTA",
+    phaseCode: 'FASE TITANIO',
     coreColor: 'ROJO',
     pressureCondition: 'ALTA',
-    conditionText: "Núcleo ROJO y Presión > 50 bar",
-    requiredSwitches: { alfa: true, beta: false, gamma: false, delta: true }
+    pressureThreshold: 50,
+    pressureDesc: '> 50 bar',
+    requiredSwitches: { alfa: true, beta: false, gamma: false, delta: true },
+    valvesText: 'ALFA y DELTA'
   },
   {
     id: 'R2',
-    text: "SI NÚCLEO ES ROJO Y PRESIÓN ≤ 50 BAR ➔ ACTIVAR ÚNICAMENTE BETA Y DELTA",
+    phaseCode: 'FASE TITANIO',
     coreColor: 'ROJO',
     pressureCondition: 'BAJA',
-    conditionText: "Núcleo ROJO y Presión ≤ 50 bar",
-    requiredSwitches: { alfa: false, beta: true, gamma: false, delta: true }
+    pressureThreshold: 50,
+    pressureDesc: '≤ 50 bar',
+    requiredSwitches: { alfa: false, beta: true, gamma: false, delta: true },
+    valvesText: 'BETA y DELTA'
   },
   {
     id: 'R3',
-    text: "SI NÚCLEO ES ÁMBAR Y PRESIÓN > 60 BAR ➔ ACTIVAR ALFA, BETA Y GAMMA",
+    phaseCode: 'FASE URANIO',
     coreColor: 'AMBAR',
     pressureCondition: 'ALTA',
-    conditionText: "Núcleo ÁMBAR y Presión > 60 bar",
-    requiredSwitches: { alfa: true, beta: true, gamma: true, delta: false }
+    pressureThreshold: 60,
+    pressureDesc: '> 60 bar',
+    requiredSwitches: { alfa: true, beta: true, gamma: true, delta: false },
+    valvesText: 'ALFA, BETA y GAMMA'
   },
   {
     id: 'R4',
-    text: "SI NÚCLEO ES ÁMBAR Y PRESIÓN ≤ 60 BAR ➔ ACTIVAR ÚNICAMENTE BETA Y GAMMA",
+    phaseCode: 'FASE URANIO',
     coreColor: 'AMBAR',
     pressureCondition: 'BAJA',
-    conditionText: "Núcleo ÁMBAR y Presión ≤ 60 bar",
-    requiredSwitches: { alfa: false, beta: true, gamma: true, delta: false }
+    pressureThreshold: 60,
+    pressureDesc: '≤ 60 bar',
+    requiredSwitches: { alfa: false, beta: true, gamma: true, delta: false },
+    valvesText: 'BETA y GAMMA'
   },
   {
     id: 'R5',
-    text: "SI NÚCLEO ES VERDE Y PRESIÓN > 45 BAR ➔ ACTIVAR ÚNICAMENTE GAMMA Y DELTA",
+    phaseCode: 'FASE BORO',
     coreColor: 'VERDE',
     pressureCondition: 'ALTA',
-    conditionText: "Núcleo VERDE y Presión > 45 bar",
-    requiredSwitches: { alfa: false, beta: false, gamma: true, delta: true }
+    pressureThreshold: 45,
+    pressureDesc: '> 45 bar',
+    requiredSwitches: { alfa: false, beta: false, gamma: true, delta: true },
+    valvesText: 'GAMMA y DELTA'
   },
   {
     id: 'R6',
-    text: "SI NÚCLEO ES VERDE Y PRESIÓN ≤ 45 BAR ➔ ACTIVAR ÚNICAMENTE ALFA",
+    phaseCode: 'FASE BORO',
     coreColor: 'VERDE',
     pressureCondition: 'BAJA',
-    conditionText: "Núcleo VERDE y Presión ≤ 45 bar",
-    requiredSwitches: { alfa: true, beta: false, gamma: false, delta: false }
+    pressureThreshold: 45,
+    pressureDesc: '≤ 45 bar',
+    requiredSwitches: { alfa: true, beta: false, gamma: false, delta: false },
+    valvesText: 'solo ALFA'
   }
+];
+
+export const MANUAL_PART_A_RULES = [
+  "SECCIÓN A // CLASIFICACIÓN DE FASE POR COLOR DE NÚCLEO:",
+  "• Si Núcleo es ROJO ➔ Activa el protocolo en 'FASE TITANIO'",
+  "• Si Núcleo es ÁMBAR ➔ Activa el protocolo en 'FASE URANIO'",
+  "• Si Núcleo es VERDE ➔ Activa el protocolo en 'FASE BORO'",
+  "*(Indica por voz la FASE al Ingeniero B para que busque las válvulas)*"
+];
+
+export const MANUAL_PART_B_RULES = [
+  "SECCIÓN B // ASIGNACIÓN DE VÁLVULAS POR PRESIÓN Y FASE:",
+  "• FASE TITANIO con Presión > 50 bar ➔ Conectar ALFA y DELTA",
+  "• FASE TITANIO con Presión ≤ 50 bar ➔ Conectar BETA y DELTA",
+  "• FASE URANIO con Presión > 60 bar ➔ Conectar ALFA, BETA y GAMMA",
+  "• FASE URANIO con Presión ≤ 60 bar ➔ Conectar BETA y GAMMA",
+  "• FASE BORO con Presión > 45 bar ➔ Conectar GAMMA y DELTA",
+  "• FASE BORO con Presión ≤ 45 bar ➔ Conectar únicamente ALFA",
+  "*(Pregunta al Ingeniero A la FASE y al Técnico la Presión actual)*"
+];
+
+export const MANUAL_FULL_RULES = [
+  "MANUAL GENERAL DE ESTABILIZACIÓN AZ-5:",
+  "1. Si Núcleo es ROJO y Presión > 50 bar ➔ Conectar ALFA y DELTA",
+  "2. Si Núcleo es ROJO y Presión ≤ 50 bar ➔ Conectar BETA y DELTA",
+  "3. Si Núcleo es ÁMBAR y Presión > 60 bar ➔ Conectar ALFA, BETA y GAMMA",
+  "4. Si Núcleo es ÁMBAR y Presión ≤ 60 bar ➔ Conectar BETA y GAMMA",
+  "5. Si Núcleo es VERDE y Presión > 45 bar ➔ Conectar GAMMA y DELTA",
+  "6. Si Núcleo es VERDE y Presión ≤ 45 bar ➔ Conectar únicamente ALFA",
+  "*(Dicta al Técnico de Mandos qué interruptores activar y cuándo disparar AZ-5)*"
 ];

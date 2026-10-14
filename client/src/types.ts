@@ -1,4 +1,10 @@
-export type PlayerRole = 'TECNICO' | 'INGENIERO';
+export type PlayerRole = 
+  | 'TECNICO_TOTAL' 
+  | 'INGENIERO_TOTAL' 
+  | 'TECNICO_ALFA_BETA' 
+  | 'TECNICO_GAMMA_DELTA' 
+  | 'INGENIERO_A' 
+  | 'INGENIERO_B';
 
 export interface PlayerStats {
   reactionTimes: number[];
@@ -17,7 +23,7 @@ export interface Player {
 
 export type GamePhase = 'LOBBY' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'SUMMARY';
 
-export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP';
+export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP' | 'SHAKE' | 'SHOUT';
 
 export interface Round1Step {
   stepNumber: number;
@@ -40,14 +46,15 @@ export interface Round2State {
     gamma: boolean;
     delta: boolean;
   };
-  manualRules: string[];
+  manualFull: string[];
+  manualPartA: string[];
+  manualPartB: string[];
   requiredSwitches: {
     alfa: boolean;
     beta: boolean;
     gamma: boolean;
     delta: boolean;
   };
-  matchedRuleText: string;
   startTime: number;
 }
 

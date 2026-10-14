@@ -87,7 +87,7 @@ io.on('connection', (socket: Socket) => {
 
   // 7. Round 2: Toggle Switch AZ-5
   socket.on('toggleSwitch', ({ roomCode, switchName }: { roomCode: string; switchName: 'alfa' | 'beta' | 'gamma' | 'delta' }) => {
-    const room = gameManager.toggleSwitchAZ5(roomCode, switchName);
+    const room = gameManager.toggleSwitchAZ5(roomCode, socket.id, switchName);
     if (room) {
       io.to(room.code).emit('stateUpdate', room);
     }

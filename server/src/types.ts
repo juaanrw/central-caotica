@@ -1,7 +1,13 @@
-export type PlayerRole = 'TECNICO' | 'INGENIERO';
+export type PlayerRole = 
+  | 'TECNICO_TOTAL' 
+  | 'INGENIERO_TOTAL' 
+  | 'TECNICO_ALFA_BETA' 
+  | 'TECNICO_GAMMA_DELTA' 
+  | 'INGENIERO_A' 
+  | 'INGENIERO_B';
 
 export interface PlayerStats {
-  reactionTimes: number[]; // reaction times in ms
+  reactionTimes: number[];
   mistakes: number;
   actionsCompleted: number;
 }
@@ -17,7 +23,7 @@ export interface Player {
 
 export type GamePhase = 'LOBBY' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'SUMMARY';
 
-export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP';
+export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP' | 'SHAKE' | 'SHOUT';
 
 export interface Round1Step {
   stepNumber: number; // 1 to 6
@@ -33,35 +39,38 @@ export interface Round1Step {
 
 export interface AZ5Rule {
   id: string;
-  text: string;
+  phaseCode: string; // e.g. "FASE I", "FASE II", "FASE III"
   coreColor: 'ROJO' | 'AMBAR' | 'VERDE';
-  pressureCondition: 'ALTA' | 'BAJA'; // > 50 or <= 50, etc.
-  conditionText: string;
+  pressureCondition: 'ALTA' | 'BAJA';
+  pressureThreshold: number; // e.g. 50, 60, 45
+  pressureDesc: string; // e.g. "> 50 bar"
   requiredSwitches: {
     alfa: boolean;
     beta: boolean;
     gamma: boolean;
     delta: boolean;
   };
+  valvesText: string; // e.g. "ALFA y DELTA"
 }
 
 export interface Round2State {
   coreColor: 'ROJO' | 'AMBAR' | 'VERDE';
-  pressure: number; // e.g. 68
+  pressure: number;
   currentSwitches: {
     alfa: boolean;
     beta: boolean;
     gamma: boolean;
     delta: boolean;
   };
-  manualRules: string[];
+  manualFull: string[];
+  manualPartA: string[]; // For Ingeniero A (Color -> Phase code)
+  manualPartB: string[]; // For Ingeniero B (Phase code + Pressure -> Valves)
   requiredSwitches: {
     alfa: boolean;
     beta: boolean;
     gamma: boolean;
     delta: boolean;
   };
-  matchedRuleText: string;
   startTime: number;
 }
 
@@ -107,7 +116,7 @@ export interface RoomState {
   code: string;
   players: Player[];
   phase: GamePhase;
-  currentStability: number; // max 1000 per round
+  currentStability: number;
   round1Scores: number;
   round2Scores: number;
   round3Scores: number;
