@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Radiation, Play, Users, Shuffle, ShieldCheck, Mic, MicOff, CheckCircle2 } from 'lucide-react';
+import { Radiation, Play, Users, Shuffle, ShieldCheck, Mic, MicOff, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { sound } from '../soundEngine';
 
 interface JoinCreateScreenProps {
@@ -38,6 +38,18 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
   const [requestingMic, setRequestingMic] = useState(false);
   const [micGranted, setMicGranted] = useState<boolean | null>(null);
 
+  const isHttpOnLan = typeof window !== 'undefined' && 
+    window.location.protocol === 'http:' && 
+    window.location.hostname !== 'localhost' && 
+    window.location.hostname !== '127.0.0.1';
+
+  const switchToHttps = () => {
+    sound.playClick();
+    if (typeof window !== 'undefined') {
+      window.location.href = `https://${window.location.hostname}:${window.location.port || '5173'}${window.location.pathname}`;
+    }
+  };
+
   const randomizeName = () => {
     sound.playClick();
     const random = SOVIET_NAMES[Math.floor(Math.random() * SOVIET_NAMES.length)];
@@ -51,7 +63,9 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         setMicGranted(true);
         stream.getTracks().forEach(t => t.stop());
+        sound.playSuccess();
       } catch (e) {
+        console.warn('Microphone permission denied:', e);
         setMicGranted(false);
       }
     } else {
@@ -65,25 +79,25 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
       return;
     }
 
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMicGranted(false);
+      proceedFn(false);
+      return;
+    }
+
     setRequestingMic(true);
     let hasMic = false;
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
-        const streamPromise = navigator.mediaDevices.getUserMedia({ audio: true });
-        const result = await Promise.race([streamPromise, timeoutPromise]);
-        if (result) {
-          hasMic = true;
-          setMicGranted(true);
-          result.getTracks().forEach(t => t.stop());
-        } else {
-          hasMic = false;
-        }
-      } catch (err) {
-        console.warn('Microphone permission not granted:', err);
-        hasMic = false;
-        setMicGranted(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (stream) {
+        hasMic = true;
+        setMicGranted(true);
+        stream.getTracks().forEach(t => t.stop());
       }
+    } catch (err) {
+      console.warn('Microphone permission not granted:', err);
+      hasMic = false;
+      setMicGranted(false);
     }
     setRequestingMic(false);
     proceedFn(hasMic);
@@ -171,32 +185,64 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
           </div>
         </div>
 
+        {/* Aviso si está en móvil por HTTP */}
+        {isHttpOnLan && (
+          <div className="bg-[#FF2A2A]/20 border-2 border-[#FF2A2A] p-2.5 text-xs text-white">
+            <div className="font-black text-[#FFD600] flex items-center gap-1.5 mb-1">
+              <AlertTriangle className="w-4 h-4 text-[#FF2A2A] shrink-0" />
+              AVISO MÓVIL: MICRÓFONO EN HTTP
+            </div>
+            <p className="text-[10px] text-gray-300 mb-2 leading-tight">
+              Los navegadores móviles (Chrome/Safari) <b>bloquean el micrófono en HTTP</b>. Para recibir órdenes de gritar, conéctate por <b>HTTPS</b>.
+            </p>
+            <button
+              type="button"
+              onClick={switchToHttps}
+              className="w-full bg-[#00FF66] hover:bg-green-400 text-black font-black uppercase py-1.5 px-2 text-[11px] border-2 border-black shadow-brutal-sm active:translate-y-0.5 transition-all"
+            >
+              🔒 CAMBIAR A HTTPS EN ESTE MÓVIL
+            </button>
+          </div>
+        )}
+
         {/* Microphone Permission status & check button */}
         <div className="bg-black/60 border border-gray-700 p-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {micGranted === true ? (
-              <CheckCircle2 className="w-4 h-4 text-[#00FF66] shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-[#00FF66] shrink-0" />
             ) : micGranted === false ? (
-              <MicOff className="w-4 h-4 text-gray-500 shrink-0" />
+              <MicOff className="w-5 h-5 text-[#FF2A2A] shrink-0" />
             ) : (
-              <Mic className="w-4 h-4 text-[#FFD600] shrink-0" />
+              <Mic className="w-5 h-5 text-[#FFD600] shrink-0 animate-pulse" />
             )}
             <div className="text-[10px] leading-tight">
-              <span className="font-bold text-gray-200 block">
-                {micGranted === true ? 'Micrófono Activado' : micGranted === false ? 'Sin Micrófono (Exento de gritar)' : 'Permiso de Micrófono'}
+              <span className="font-bold text-gray-200 block uppercase">
+                {micGranted === true
+                  ? 'Micrófono Activado'
+                  : micGranted === false
+                  ? 'Sin Micrófono (Exento)'
+                  : 'Órdenes de Voz'}
               </span>
               <span className="text-gray-400 text-[9px]">
-                {micGranted === true ? 'Podrás recibir órdenes acústicas' : 'Se pedirá permiso o puedes probarlo aquí'}
+                {micGranted === true
+                  ? 'Podrás recibir órdenes del sensor acústico'
+                  : micGranted === false
+                  ? 'No se te asignarán órdenes de gritar'
+                  : 'Pulsa para conceder permiso'}
               </span>
             </div>
           </div>
-          {micGranted === null && (
+          {micGranted === true ? (
+            <span className="bg-[#00FF66] text-black text-[9px] font-black px-2 py-1 border border-black uppercase">
+              ACTIVO
+            </span>
+          ) : (
             <button
               type="button"
               onClick={handleManualMicCheck}
-              className="px-2 py-1 bg-[#2A2D37] border border-gray-600 hover:bg-[#3F4452] text-[10px] font-bold text-[#FFD600] active:scale-95"
+              className="px-2.5 py-1 bg-[#FFD600] hover:bg-yellow-400 text-black text-[10px] font-black uppercase border border-black shadow-brutal-sm active:scale-95 transition-all"
             >
-              Permitir
+              {micGranted === false ? 'REINTENTAR' : 'ACTIVAR'}
             </button>
           )}
         </div>

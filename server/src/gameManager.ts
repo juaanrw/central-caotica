@@ -19,8 +19,8 @@ import {
 const ACTIONS: { type: ActionType; title: string; instructionPhrase: string }[] = [
   {
     type: 'BUTTON',
-    title: 'BOTÓN ROJO DE EMERGENCIA',
-    instructionPhrase: 'pulsar el botón rojo de emergencia'
+    title: 'EMERGENCIA',
+    instructionPhrase: 'pulsar emergencia'
   },
   {
     type: 'VALVE',

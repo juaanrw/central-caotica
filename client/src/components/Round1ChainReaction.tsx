@@ -260,9 +260,9 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
       {/* PHYSICAL CONTROLS (Active for everyone! If wrong player clicks, penalty is triggered) */}
       <div className="flex-1 flex flex-col justify-center gap-2 my-1">
         <div className="grid grid-cols-2 gap-2">
-          {/* 1. Botón Rojo */}
+          {/* 1. Emergencia */}
           <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
-            <span className="text-[9px] font-bold uppercase text-gray-300">1. BOTÓN ROJO</span>
+            <span className="text-[9px] font-bold uppercase text-gray-300">1. EMERGENCIA</span>
             <button
               onClick={handleButtonTap}
               className="w-14 h-14 rounded-full bg-[#FF2A2A] hover:bg-red-500 active:scale-95 active:translate-y-1 border-3 border-black shadow-brutal flex items-center justify-center my-1 transition-all cursor-pointer"
@@ -271,12 +271,12 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
                 <Flame className="w-4 h-4 text-white" />
               </div>
             </button>
-            <span className="text-[8px] text-gray-400 uppercase font-mono">Pulsar</span>
+            <span className="text-[8px] text-gray-500 uppercase font-mono tracking-wider">SETA AZ-5</span>
           </div>
 
-          {/* 2. Válvula 2s */}
+          {/* 2. Válvula */}
           <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
-            <span className="text-[9px] font-bold uppercase text-gray-300">2. VÁLVULA (2s)</span>
+            <span className="text-[9px] font-bold uppercase text-gray-300">2. VÁLVULA</span>
             <button
               onMouseDown={handleValveStart}
               onMouseUp={handleValveEnd}
@@ -293,9 +293,9 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
             </div>
           </div>
 
-          {/* 3. Palanca Slider */}
+          {/* 3. Palanca */}
           <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
-            <span className="text-[9px] font-bold uppercase text-gray-300">3. PALANCA 100%</span>
+            <span className="text-[9px] font-bold uppercase text-gray-300">3. PALANCA</span>
             <div className="w-full flex items-center gap-1.5 my-1.5">
               <Sliders className="w-3.5 h-3.5 text-[#00F0FF] shrink-0" />
               <input
@@ -308,17 +308,17 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
                 className="w-full accent-[#00F0FF] cursor-pointer h-2.5 bg-black border border-gray-600 rounded-none"
               />
             </div>
-            <span className="text-[8px] font-mono text-[#00F0FF] font-bold">{sliderValue}%</span>
+            <span className="text-[8px] font-mono text-gray-500 font-bold uppercase tracking-wider">REGULADOR</span>
           </div>
 
-          {/* 4. Bomba Manual 5 toques */}
+          {/* 4. Bomba */}
           <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
-            <span className="text-[9px] font-bold uppercase text-gray-300">4. BOMBA (5 TOQUES)</span>
+            <span className="text-[9px] font-bold uppercase text-gray-300">4. BOMBA</span>
             <button
               onClick={handlePumpTap}
               className="w-full py-1.5 bg-[#2A2D37] hover:bg-[#3F4452] active:scale-95 border-2 border-black text-[11px] font-black uppercase text-[#FFD600] shadow-brutal-sm my-1 flex items-center justify-center gap-1"
             >
-              ¡BOMBEAR! ({pumpCount}/5)
+              ¡BOMBEAR!
             </button>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((p) => (
@@ -328,7 +328,7 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
           </div>
         </div>
 
-        {/* 5. Sensor Acústico (Micrófono / Gritar) */}
+        {/* 5. Sensor Acústico */}
         <div className="bg-[#1C1E24] border-3 border-black p-2.5 shadow-brutal flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className={`p-2 border-2 border-black rounded ${micActive ? 'bg-[#00FF66] text-black' : 'bg-[#2A2D37] text-gray-400'}`}>
@@ -336,10 +336,10 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
             </div>
             <div>
               <div className="text-[10px] font-black uppercase text-gray-200">
-                5. SENSOR ACÚSTICO (GRITAR)
+                5. SENSOR ACÚSTICO
               </div>
               <div className="text-[9px] text-gray-400 font-mono">
-                {micActive ? 'Micro activo: grita fuerte' : 'Usa el botón de respaldo'}
+                {micActive ? 'CANAL DE AUDIO ACTIVO' : 'MODO ALTERNATIVO'}
               </div>
             </div>
           </div>
@@ -349,7 +349,7 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
               onClick={handleManualShout}
               className="py-1 px-3 bg-[#FF2A2A] hover:bg-red-600 active:scale-95 text-white font-black text-xs uppercase border-2 border-black shadow-brutal-sm transition-all"
             >
-              ¡GRITAR!
+              ACTIVAR
             </button>
             <div className="w-16 bg-black h-3 border border-gray-700">
               <div
