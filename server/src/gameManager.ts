@@ -37,11 +37,6 @@ const ACTIONS: { type: ActionType; title: string; instructionPhrase: string }[] 
     instructionPhrase: 'bombear rápido (5 toques seguidos)'
   },
   {
-    type: 'SHAKE',
-    title: 'SENSOR DE MOVIMIENTO',
-    instructionPhrase: 'agitar el móvil con fuerza'
-  },
-  {
     type: 'SHOUT',
     title: 'SENSOR ACÚSTICO',
     instructionPhrase: 'gritar al micrófono'
@@ -65,12 +60,13 @@ export class GameManager {
     }
   }
 
-  public createRoom(hostName: string, hostSocketId: string): RoomState {
+  public createRoom(hostName: string, hostSocketId: string, hasMic: boolean = false): RoomState {
     const code = this.generateRoomCode();
     const host: Player = {
       id: hostSocketId,
       name: hostName.trim() || 'Operario Jefe',
       isHost: true,
+      hasMic,
       stats: { reactionTimes: [], mistakes: 0, actionsCompleted: 0 }
     };
 
@@ -90,7 +86,7 @@ export class GameManager {
     return room;
   }
 
-  public joinRoom(code: string, playerName: string, socketId: string): { room?: RoomState; error?: string } {
+  public joinRoom(code: string, playerName: string, socketId: string, hasMic: boolean = false): { room?: RoomState; error?: string } {
     const upperCode = code.toUpperCase().trim();
     const room = this.rooms.get(upperCode);
     if (!room) {
@@ -109,11 +105,23 @@ export class GameManager {
       id: socketId,
       name: playerName.trim() || `Camarada-${room.players.length + 1}`,
       isHost: false,
+      hasMic,
       stats: { reactionTimes: [], mistakes: 0, actionsCompleted: 0 }
     };
 
     room.players.push(player);
     return { room };
+  }
+
+  public setPlayerMic(socketId: string, hasMic: boolean): RoomState | null {
+    const room = this.getRoomBySocketId(socketId);
+    if (!room) return null;
+    const player = room.players.find(p => p.id === socketId);
+    if (player) {
+      player.hasMic = hasMic;
+      return room;
+    }
+    return null;
   }
 
   public addBot(roomCode: string): RoomState | null {
@@ -129,6 +137,7 @@ export class GameManager {
       name: availableName,
       isHost: false,
       isBot: true,
+      hasMic: true,
       stats: { reactionTimes: [], mistakes: 0, actionsCompleted: 0 }
     };
 
@@ -210,11 +219,17 @@ export class GameManager {
 
     const sender = players[senderIdx];
     const executor = players[executorIdx];
-    const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
 
-    const instructionText = executor.id === sender.id
-      ? `¡${executor.name.toUpperCase()} TIENE QUE ${action.instructionPhrase.toUpperCase()}! (¡TE TOCA A TI!)`
-      : `¡${executor.name.toUpperCase()} TIENE QUE ${action.instructionPhrase.toUpperCase()}!`;
+    // Filter available actions based on executor's microphone permission
+    const availableActions = ACTIONS.filter(a => {
+      if (a.type === 'SHOUT') {
+        return !!executor.hasMic;
+      }
+      return true;
+    });
+
+    const action = availableActions[Math.floor(Math.random() * availableActions.length)];
+    const instructionText = `¡${executor.name.toUpperCase()} TIENE QUE ${action.instructionPhrase.toUpperCase()}!`;
 
     const step: Round1Step = {
       stepNumber,

@@ -14,7 +14,7 @@ async function runTest() {
   });
 
   // 1. Create Room
-  socket1.emit('createRoom', { hostName: 'Host Dyatlov' });
+  socket1.emit('createRoom', { hostName: 'Host Dyatlov', hasMic: true });
   await new Promise((resolve) => socket1.once('roomCreated', (r) => {
     currentRoom = r;
     console.log('✅ Room created with code:', r.code);
@@ -70,16 +70,23 @@ async function runTest() {
 
   // If Host is a technician, toggle their switches
   const hostPlayer = currentRoom.players.find(p => p.id === socket1.id);
-  for (const sw of ['alfa', 'beta', 'gamma', 'delta']) {
-    if (req[sw] !== currentRoom.round2.currentSwitches[sw]) {
-      socket1.emit('toggleSwitch', { roomCode: currentRoom.code, switchName: sw });
-      await new Promise((resolve) => setTimeout(resolve, 150));
+  const isTecnico = hostPlayer && hostPlayer.role && hostPlayer.role.startsWith('TECNICO');
+  if (isTecnico) {
+    for (const sw of ['alfa', 'beta', 'gamma', 'delta']) {
+      if (req[sw] !== currentRoom.round2.currentSwitches[sw]) {
+        socket1.emit('toggleSwitch', { roomCode: currentRoom.code, switchName: sw });
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
     }
+    socket1.emit('stabilizeAZ5', { roomCode: currentRoom.code });
   }
 
-  // Stabilize AZ-5
-  socket1.emit('stabilizeAZ5', { roomCode: currentRoom.code });
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Wait until Round 2 completes (via host technician or bot technician auto-stabilize)
+  let r2Safety = 0;
+  while (currentRoom.phase === 'ROUND_2' && r2Safety < 10) {
+    r2Safety++;
+    await new Promise((resolve) => setTimeout(resolve, 600));
+  }
   console.log('✅ Round 2 completed! Score:', currentRoom.round2Scores, 'Next phase:', currentRoom.phase);
 
   // 6. Test Round 3: Trivia (Cultura General)

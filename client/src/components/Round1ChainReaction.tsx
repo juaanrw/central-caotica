@@ -5,7 +5,6 @@ import {
   Flame, 
   Sliders, 
   Mic, 
-  Smartphone,
   Volume2
 } from 'lucide-react';
 import { RoomState, ActionType } from '../types';
@@ -32,7 +31,6 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
   const [valveProgress, setValveProgress] = useState(0);
   const [sliderValue, setSliderValue] = useState(0);
   const [pumpCount, setPumpCount] = useState(0);
-  const [shakeEnergy, setShakeEnergy] = useState(0);
   const [micVolume, setMicVolume] = useState(0);
   const [micActive, setMicActive] = useState(false);
   const [lastActionFeedback, setLastActionFeedback] = useState<string | null>(null);
@@ -49,68 +47,10 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
     setValveProgress(0);
     setSliderValue(0);
     setPumpCount(0);
-    setShakeEnergy(0);
     sound.playGeiger(2);
   }, [step.stepNumber]);
 
-  // --- SENSOR 1: ACELERÓMETRO (AGITAR EL MÓVIL) ---
-  useEffect(() => {
-    let lastX = 0, lastY = 0, lastZ = 0;
-    let lastTime = 0;
-
-    const handleMotion = (event: DeviceMotionEvent) => {
-      const current = event.accelerationIncludingGravity;
-      if (!current) return;
-
-      const now = Date.now();
-      if (now - lastTime > 80) {
-        const diffTime = now - lastTime;
-        lastTime = now;
-
-        const x = current.x || 0;
-        const y = current.y || 0;
-        const z = current.z || 0;
-
-        const speed = (Math.abs(x - lastX) + Math.abs(y - lastY) + Math.abs(z - lastZ)) / diffTime * 10000;
-
-        if (speed > 450) {
-          setShakeEnergy(prev => {
-            const next = prev + 35;
-            sound.playGeiger(1);
-            if (next >= 100) {
-              sound.playSuccess();
-              triggerAction('SHAKE');
-              return 0;
-            }
-            return next;
-          });
-        }
-
-        lastX = x;
-        lastY = y;
-        lastZ = z;
-      }
-    };
-
-    window.addEventListener('devicemotion', handleMotion);
-    return () => window.removeEventListener('devicemotion', handleMotion);
-  }, [step.stepNumber]);
-
-  // Fallback tap for shake
-  const handleManualShake = () => {
-    sound.playClick();
-    setShakeEnergy(prev => {
-      const next = prev + 34;
-      if (next >= 100) {
-        sound.playSuccess();
-        triggerAction('SHAKE');
-        return 0;
-      }
-      return next;
-    });
-  };
-
-  // --- SENSOR 2: MICRÓFONO (GRITAR / VOLUMEN) ---
+  // --- SENSOR ACÚSTICO: MICRÓFONO (GRITAR / VOLUMEN) ---
   const startMicListener = async () => {
     try {
       sound.playClick();
@@ -155,10 +95,18 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
 
       animFrameRef.current = requestAnimationFrame(checkVolume);
     } catch (err) {
-      console.warn('Microphone permission denied or not available:', err);
+      console.warn('Microphone permission not granted or unavailable:', err);
       setMicActive(false);
     }
   };
+
+  // Attempt to auto-start mic if player accepted microphone permission
+  useEffect(() => {
+    const me = room.players.find(p => p.id === currentSocketId);
+    if (me?.hasMic && !micActive) {
+      startMicListener();
+    }
+  }, [room.players, currentSocketId]);
 
   // Cleanup mic on unmount
   useEffect(() => {
@@ -309,120 +257,106 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
         </div>
       )}
 
-      {/* ALL 6 PHYSICAL CONTROLS (Active for everyone! If wrong player clicks, penalty is triggered) */}
-      <div className="grid grid-cols-2 gap-2 my-1">
-        {/* 1. Botón Rojo */}
-        <div className="bg-[#1C1E24] border-3 border-black p-2 flex flex-col items-center justify-between shadow-brutal">
-          <span className="text-[9px] font-bold uppercase text-gray-300">1. BOTÓN ROJO</span>
-          <button
-            onClick={handleButtonTap}
-            className="w-13 h-13 rounded-full bg-[#FF2A2A] hover:bg-red-500 active:scale-95 active:translate-y-1 border-3 border-black shadow-brutal flex items-center justify-center my-1.5 transition-all cursor-pointer"
-          >
-            <div className="w-8 h-8 rounded-full border-2 border-red-300 bg-red-600 flex items-center justify-center">
-              <Flame className="w-4 h-4 text-white" />
-            </div>
-          </button>
-          <span className="text-[8px] text-gray-400 uppercase font-mono">Pulsar</span>
-        </div>
-
-        {/* 2. Válvula 2s */}
-        <div className="bg-[#1C1E24] border-3 border-black p-2 flex flex-col items-center justify-between shadow-brutal">
-          <span className="text-[9px] font-bold uppercase text-gray-300">2. VÁLVULA (2s)</span>
-          <button
-            onMouseDown={handleValveStart}
-            onMouseUp={handleValveEnd}
-            onTouchStart={handleValveStart}
-            onTouchEnd={handleValveEnd}
-            className={`w-13 h-13 rounded-full border-3 border-black flex items-center justify-center my-1.5 shadow-brutal transition-all cursor-pointer ${
-              valveHolding ? 'bg-[#00FF66] scale-105' : 'bg-[#FFD600] active:scale-95'
-            }`}
-          >
-            <RotateCw className={`w-5 h-5 text-black ${valveHolding ? 'animate-spin' : ''}`} />
-          </button>
-          <div className="w-full bg-black h-1.5 border border-gray-700">
-            <div className="bg-[#00FF66] h-full transition-all" style={{ width: `${valveProgress}%` }} />
-          </div>
-        </div>
-
-        {/* 3. Palanca Slider */}
-        <div className="bg-[#1C1E24] border-3 border-black p-2 flex flex-col items-center justify-between shadow-brutal">
-          <span className="text-[9px] font-bold uppercase text-gray-300">3. PALANCA 100%</span>
-          <div className="w-full flex items-center gap-1.5 my-1">
-            <Sliders className="w-3.5 h-3.5 text-[#00F0FF] shrink-0" />
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              value={sliderValue}
-              onChange={handleSliderChange}
-              className="w-full accent-[#00F0FF] cursor-pointer h-2.5 bg-black border border-gray-600 rounded-none"
-            />
-          </div>
-          <span className="text-[8px] font-mono text-[#00F0FF] font-bold">{sliderValue}%</span>
-        </div>
-
-        {/* 4. Bomba Manual 5 toques */}
-        <div className="bg-[#1C1E24] border-3 border-black p-2 flex flex-col items-center justify-between shadow-brutal">
-          <span className="text-[9px] font-bold uppercase text-gray-300">4. BOMBA (5 TOQUES)</span>
-          <button
-            onClick={handlePumpTap}
-            className="w-full py-1.5 bg-[#2A2D37] hover:bg-[#3F4452] active:scale-95 border-2 border-black text-[11px] font-black uppercase text-[#FFD600] shadow-brutal-sm my-1 flex items-center justify-center gap-1"
-          >
-            ¡BOMBEAR! ({pumpCount}/5)
-          </button>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((p) => (
-              <div key={p} className={`w-2.5 h-1.5 border border-black ${pumpCount >= p ? 'bg-[#FFD600]' : 'bg-black'}`} />
-            ))}
-          </div>
-        </div>
-
-        {/* 5. Sensor de Movimiento (Agitar) */}
-        <div className="bg-[#1C1E24] border-3 border-black p-2 flex flex-col items-center justify-between shadow-brutal">
-          <span className="text-[9px] font-bold uppercase text-gray-300">5. AGITAR MÓVIL</span>
-          <button
-            onClick={handleManualShake}
-            className={`w-full py-1.5 border-2 border-black text-[10px] font-black uppercase text-black shadow-brutal-sm my-1 flex items-center justify-center gap-1 active:scale-95 transition-all ${
-              shakeEnergy > 0 ? 'bg-[#00FF66] animate-pulse' : 'bg-[#FF9900]'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            ¡SACUDIR!
-          </button>
-          <div className="w-full bg-black h-1.5 border border-gray-700">
-            <div className="bg-[#00FF66] h-full transition-all" style={{ width: `${shakeEnergy}%` }} />
-          </div>
-        </div>
-
-        {/* 6. Sensor Acústico (Micrófono) */}
-        <div className="bg-[#1C1E24] border-3 border-black p-2 flex flex-col items-center justify-between shadow-brutal">
-          <span className="text-[9px] font-bold uppercase text-gray-300">6. GRITAR / MICRO</span>
-          {!micActive ? (
+      {/* PHYSICAL CONTROLS (Active for everyone! If wrong player clicks, penalty is triggered) */}
+      <div className="flex-1 flex flex-col justify-center gap-2 my-1">
+        <div className="grid grid-cols-2 gap-2">
+          {/* 1. Botón Rojo */}
+          <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
+            <span className="text-[9px] font-bold uppercase text-gray-300">1. BOTÓN ROJO</span>
             <button
-              onClick={startMicListener}
-              className="w-full py-1 bg-[#2A2D37] border-2 border-black text-[9px] font-black text-[#00F0FF] my-1 flex items-center justify-center gap-1 hover:bg-[#3F4452]"
+              onClick={handleButtonTap}
+              className="w-14 h-14 rounded-full bg-[#FF2A2A] hover:bg-red-500 active:scale-95 active:translate-y-1 border-3 border-black shadow-brutal flex items-center justify-center my-1 transition-all cursor-pointer"
             >
-              <Mic className="w-3 h-3 text-[#00F0FF]" />
-              Activar Micro
+              <div className="w-9 h-9 rounded-full border-2 border-red-300 bg-red-600 flex items-center justify-center">
+                <Flame className="w-4 h-4 text-white" />
+              </div>
             </button>
-          ) : (
-            <div className="text-[9px] text-[#00FF66] font-mono font-bold flex items-center gap-1 my-1">
-              <span className="w-2 h-2 rounded-full bg-[#00FF66] animate-ping" />
-              Micro Online
+            <span className="text-[8px] text-gray-400 uppercase font-mono">Pulsar</span>
+          </div>
+
+          {/* 2. Válvula 2s */}
+          <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
+            <span className="text-[9px] font-bold uppercase text-gray-300">2. VÁLVULA (2s)</span>
+            <button
+              onMouseDown={handleValveStart}
+              onMouseUp={handleValveEnd}
+              onTouchStart={handleValveStart}
+              onTouchEnd={handleValveEnd}
+              className={`w-14 h-14 rounded-full border-3 border-black flex items-center justify-center my-1 shadow-brutal transition-all cursor-pointer ${
+                valveHolding ? 'bg-[#00FF66] scale-105' : 'bg-[#FFD600] active:scale-95'
+              }`}
+            >
+              <RotateCw className={`w-6 h-6 text-black ${valveHolding ? 'animate-spin' : ''}`} />
+            </button>
+            <div className="w-full bg-black h-1.5 border border-gray-700">
+              <div className="bg-[#00FF66] h-full transition-all" style={{ width: `${valveProgress}%` }} />
             </div>
-          )}
-          <button
-            onClick={handleManualShout}
-            className="w-full py-0.5 bg-[#FF2A2A] text-white text-[9px] font-black uppercase border border-black shadow-brutal-sm active:scale-95"
-          >
-            ¡Gritar!
-          </button>
-          <div className="w-full bg-black h-1.5 border border-gray-700 mt-1">
-            <div
-              className={`h-full transition-all ${micVolume > 40 ? 'bg-[#FF2A2A]' : 'bg-[#00FF66]'}`}
-              style={{ width: `${micVolume}%` }}
-            />
+          </div>
+
+          {/* 3. Palanca Slider */}
+          <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
+            <span className="text-[9px] font-bold uppercase text-gray-300">3. PALANCA 100%</span>
+            <div className="w-full flex items-center gap-1.5 my-1.5">
+              <Sliders className="w-3.5 h-3.5 text-[#00F0FF] shrink-0" />
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={sliderValue}
+                onChange={handleSliderChange}
+                className="w-full accent-[#00F0FF] cursor-pointer h-2.5 bg-black border border-gray-600 rounded-none"
+              />
+            </div>
+            <span className="text-[8px] font-mono text-[#00F0FF] font-bold">{sliderValue}%</span>
+          </div>
+
+          {/* 4. Bomba Manual 5 toques */}
+          <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
+            <span className="text-[9px] font-bold uppercase text-gray-300">4. BOMBA (5 TOQUES)</span>
+            <button
+              onClick={handlePumpTap}
+              className="w-full py-1.5 bg-[#2A2D37] hover:bg-[#3F4452] active:scale-95 border-2 border-black text-[11px] font-black uppercase text-[#FFD600] shadow-brutal-sm my-1 flex items-center justify-center gap-1"
+            >
+              ¡BOMBEAR! ({pumpCount}/5)
+            </button>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((p) => (
+                <div key={p} className={`w-2.5 h-1.5 border border-black ${pumpCount >= p ? 'bg-[#FFD600]' : 'bg-black'}`} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Sensor Acústico (Micrófono / Gritar) */}
+        <div className="bg-[#1C1E24] border-3 border-black p-2.5 shadow-brutal flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className={`p-2 border-2 border-black rounded ${micActive ? 'bg-[#00FF66] text-black' : 'bg-[#2A2D37] text-gray-400'}`}>
+              <Mic className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase text-gray-200">
+                5. SENSOR ACÚSTICO (GRITAR)
+              </div>
+              <div className="text-[9px] text-gray-400 font-mono">
+                {micActive ? 'Micro activo: grita fuerte' : 'Usa el botón de respaldo'}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleManualShout}
+              className="py-1 px-3 bg-[#FF2A2A] hover:bg-red-600 active:scale-95 text-white font-black text-xs uppercase border-2 border-black shadow-brutal-sm transition-all"
+            >
+              ¡GRITAR!
+            </button>
+            <div className="w-16 bg-black h-3 border border-gray-700">
+              <div
+                className={`h-full transition-all ${micVolume > 40 ? 'bg-[#FF2A2A]' : 'bg-[#00FF66]'}`}
+                style={{ width: `${micVolume}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>

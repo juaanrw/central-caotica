@@ -17,13 +17,14 @@ export interface Player {
   name: string;
   isHost: boolean;
   isBot?: boolean;
+  hasMic?: boolean;
   role?: PlayerRole;
   stats: PlayerStats;
 }
 
 export type GamePhase = 'LOBBY' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'SUMMARY';
 
-export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP' | 'SHAKE' | 'SHOUT';
+export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP' | 'SHOUT';
 
 export interface Round1Step {
   stepNumber: number; // 1 to 6
@@ -39,18 +40,18 @@ export interface Round1Step {
 
 export interface AZ5Rule {
   id: string;
-  phaseCode: string; // e.g. "FASE I", "FASE II", "FASE III"
+  phaseCode: string;
   coreColor: 'ROJO' | 'AMBAR' | 'VERDE';
   pressureCondition: 'ALTA' | 'BAJA';
-  pressureThreshold: number; // e.g. 50, 60, 45
-  pressureDesc: string; // e.g. "> 50 bar"
+  pressureThreshold: number;
+  pressureDesc: string;
   requiredSwitches: {
     alfa: boolean;
     beta: boolean;
     gamma: boolean;
     delta: boolean;
   };
-  valvesText: string; // e.g. "ALFA y DELTA"
+  valvesText: string;
 }
 
 export interface Round2State {
@@ -63,8 +64,8 @@ export interface Round2State {
     delta: boolean;
   };
   manualFull: string[];
-  manualPartA: string[]; // For Ingeniero A (Color -> Phase code)
-  manualPartB: string[]; // For Ingeniero B (Phase code + Pressure -> Valves)
+  manualPartA: string[];
+  manualPartB: string[];
   requiredSwitches: {
     alfa: boolean;
     beta: boolean;
@@ -82,7 +83,7 @@ export interface TriviaOption {
 }
 
 export interface Round3Question {
-  questionNumber: number; // 1 to 3
+  questionNumber: number;
   prompt: string;
   options: TriviaOption[];
   startTime: number;

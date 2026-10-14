@@ -8,7 +8,9 @@ import {
   Trash2, 
   Radio, 
   AlertCircle,
-  Smartphone
+  Smartphone,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { RoomState } from '../types';
 import { sound } from '../soundEngine';
@@ -124,7 +126,16 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
+                  {player.hasMic ? (
+                    <div className="flex items-center gap-1 text-[10px] text-[#00FF66]" title="Micrófono Conectado">
+                      <Mic className="w-3.5 h-3.5" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-[10px] text-gray-500" title="Sin Micrófono (Exento de gritar)">
+                      <MicOff className="w-3.5 h-3.5" />
+                    </div>
+                  )}
                   <div className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse" />
                   {isHost && player.isBot && (
                     <button

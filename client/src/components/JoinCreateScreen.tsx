@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Radiation, AlertTriangle, Play, Users, Shuffle, ShieldCheck } from 'lucide-react';
+import { Radiation, AlertTriangle, Play, Users, Shuffle, ShieldCheck, Mic } from 'lucide-react';
 import { sound } from '../soundEngine';
 
 interface JoinCreateScreenProps {
   playerName: string;
   setPlayerName: (name: string) => void;
-  onCreateRoom: () => void;
-  onJoinRoom: (code: string) => void;
+  onCreateRoom: (hasMic: boolean) => void;
+  onJoinRoom: (code: string, hasMic: boolean) => void;
   errorMessage?: string;
 }
 
@@ -33,11 +33,29 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
 }) => {
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [activeTab, setActiveTab] = useState<'JOIN' | 'CREATE'>('CREATE');
+  const [requestingMic, setRequestingMic] = useState(false);
 
   const randomizeName = () => {
     sound.playClick();
     const random = SOVIET_NAMES[Math.floor(Math.random() * SOVIET_NAMES.length)];
     setPlayerName(`Operario ${random}`);
+  };
+
+  const requestMicAndProceed = async (proceedFn: (hasMic: boolean) => void) => {
+    setRequestingMic(true);
+    let hasMic = false;
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        hasMic = true;
+        stream.getTracks().forEach(t => t.stop());
+      } catch (err) {
+        console.warn('Microphone permission denied or unavailable:', err);
+        hasMic = false;
+      }
+    }
+    setRequestingMic(false);
+    proceedFn(hasMic);
   };
 
   const handleCreate = (e: React.FormEvent) => {
@@ -46,7 +64,9 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
     if (!playerName.trim()) {
       randomizeName();
     }
-    onCreateRoom();
+    requestMicAndProceed((hasMic) => {
+      onCreateRoom(hasMic);
+    });
   };
 
   const handleJoin = (e: React.FormEvent) => {
@@ -56,7 +76,9 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
       randomizeName();
     }
     if (roomCodeInput.trim().length >= 4) {
-      onJoinRoom(roomCodeInput.trim().toUpperCase());
+      requestMicAndProceed((hasMic) => {
+        onJoinRoom(roomCodeInput.trim().toUpperCase(), hasMic);
+      });
     }
   };
 
@@ -93,7 +115,7 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
       </div>
 
       {/* Form Card */}
-      <div className="bg-[#1C1E24] border-4 border-black p-4 my-4 shadow-brutal flex flex-col gap-4">
+      <div className="bg-[#1C1E24] border-4 border-black p-4 my-3 shadow-brutal flex flex-col gap-4">
         {/* Operator Name */}
         <div>
           <label className="block text-xs font-bold text-gray-300 uppercase mb-1.5">
@@ -117,6 +139,14 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
               <Shuffle className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        {/* Mic notice */}
+        <div className="bg-black/60 border border-gray-700 p-2 text-[10px] text-gray-300 flex items-center gap-2">
+          <Mic className="w-4 h-4 text-[#00FF66] shrink-0" />
+          <span>
+            Al pulsar el botón se solicitará acceso al micrófono. Si no lo aceptas, quedarás exento de órdenes acústicas (gritar).
+          </span>
         </div>
 
         {/* Tab Switcher */}
@@ -159,10 +189,11 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
             </p>
             <button
               type="submit"
-              className="w-full bg-[#FFD600] hover:bg-yellow-400 active:translate-y-1 text-black font-black uppercase py-3 px-4 border-4 border-black text-sm tracking-wider flex items-center justify-center gap-2 shadow-brutal transition-all"
+              disabled={requestingMic}
+              className="w-full bg-[#FFD600] hover:bg-yellow-400 active:translate-y-1 text-black font-black uppercase py-3 px-4 border-4 border-black text-sm tracking-wider flex items-center justify-center gap-2 shadow-brutal transition-all disabled:opacity-50"
             >
               <Play className="w-5 h-5 fill-black" />
-              ABRIR SALA DE CONTROL
+              {requestingMic ? 'SOLICITANDO MICRO...' : 'ABRIR SALA DE CONTROL'}
             </button>
           </form>
         ) : (
@@ -183,11 +214,11 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
             </div>
             <button
               type="submit"
-              disabled={roomCodeInput.trim().length < 4}
+              disabled={roomCodeInput.trim().length < 4 || requestingMic}
               className="w-full bg-[#00F0FF] hover:bg-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed active:translate-y-1 text-black font-black uppercase py-3 px-4 border-4 border-black text-sm tracking-wider flex items-center justify-center gap-2 shadow-brutal transition-all"
             >
               <Users className="w-5 h-5" />
-              CONECTAR AL TURNO
+              {requestingMic ? 'SOLICITANDO MICRO...' : 'CONECTAR AL TURNO'}
             </button>
           </form>
         )}
