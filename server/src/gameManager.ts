@@ -12,7 +12,8 @@ import {
   AZ5_RULES, 
   MANUAL_PART_A_RULES, 
   MANUAL_PART_B_RULES, 
-  MANUAL_FULL_RULES 
+  MANUAL_FULL_RULES,
+  TriviaQuestionRaw
 } from './questions';
 
 const ACTIONS: { type: ActionType; title: string; instructionPhrase: string }[] = [
@@ -48,6 +49,7 @@ export type BroadcastCallback = (room: RoomState, event: string, data?: any) => 
 export class GameManager {
   private rooms: Map<string, RoomState> = new Map();
   private botTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private roomTriviaPool: Map<string, TriviaQuestionRaw[]> = new Map();
   private broadcaster?: BroadcastCallback;
 
   public setBroadcaster(cb: BroadcastCallback) {
@@ -484,7 +486,7 @@ export class GameManager {
     return true;
   }
 
-  // --- ROUND 3: LLAMADA DEL MINISTERIO (CULTURA GENERAL) ---
+  // --- ROUND 3: LLAMADA DEL MINISTERIO (CULTURA GENERAL - 5 PREGUNTAS ÚNICAS) ---
 
   private initRound3(room: RoomState) {
     this.clearBotTimeouts(room.code);
@@ -493,13 +495,19 @@ export class GameManager {
     room.roundStartTime = Date.now();
     room.botRadioMessage = undefined;
 
+    // Pick 5 unique non-repeating questions for this room
+    const shuffled = [...GENERAL_CULTURE_TRIVIA].sort(() => Math.random() - 0.5);
+    this.roomTriviaPool.set(room.code, shuffled.slice(0, 5));
+
     this.initTriviaQuestion(room, 1);
   }
 
   private initTriviaQuestion(room: RoomState, questionNumber: number) {
     this.clearBotTimeouts(room.code);
 
-    const qRaw = GENERAL_CULTURE_TRIVIA[Math.floor(Math.random() * GENERAL_CULTURE_TRIVIA.length)];
+    const pool = this.roomTriviaPool.get(room.code) || GENERAL_CULTURE_TRIVIA;
+    const qRaw = pool[questionNumber - 1] || pool[0];
+
     const optionsRaw = [
       { text: qRaw.correctAnswer, isCorrect: true },
       ...qRaw.distractors.map(d => ({ text: d, isCorrect: false }))
@@ -518,6 +526,7 @@ export class GameManager {
 
     room.round3 = {
       questionNumber,
+      totalQuestions: 5,
       prompt: qRaw.prompt,
       options: triviaOptions,
       startTime: Date.now()
@@ -570,7 +579,7 @@ export class GameManager {
       elapsedMs: elapsed
     });
 
-    if (question.questionNumber < 3) {
+    if (question.questionNumber < 5) {
       this.initTriviaQuestion(room, question.questionNumber + 1);
       this.emit(room, 'stateUpdate', room);
     } else {

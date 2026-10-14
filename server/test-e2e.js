@@ -96,7 +96,7 @@ async function runTest() {
     triviaSafety++;
     const q = currentRoom.round3;
     if (q) {
-      console.log(`Question ${q.questionNumber}/3: "${q.prompt.substring(0, 50)}..."`);
+      console.log(`Question ${q.questionNumber}/${q.totalQuestions || 5}: "${q.prompt.substring(0, 50)}..."`);
       const correctOpt = q.options.find(o => o.isCorrect);
       
       if (correctOpt && correctOpt.assignedPlayerId === socket1.id) {

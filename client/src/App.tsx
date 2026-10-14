@@ -16,6 +16,7 @@ export const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isShaking, setIsShaking] = useState<boolean>(false);
   const [socketId, setSocketId] = useState<string>('');
+  const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
 
   const triggerShake = () => {
     setIsShaking(true);
@@ -24,9 +25,15 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     setSocketId(socket.id || '');
+    setIsConnected(socket.connected);
 
     socket.on('connect', () => {
       setSocketId(socket.id || '');
+      setIsConnected(true);
+    });
+
+    socket.on('disconnect', () => {
+      setIsConnected(false);
     });
 
     socket.on('roomCreated', (newRoom: RoomState) => {
@@ -167,6 +174,7 @@ export const App: React.FC = () => {
             onCreateRoom={handleCreateRoom}
             onJoinRoom={handleJoinRoom}
             errorMessage={errorMessage}
+            isConnected={isConnected}
           />
         )}
 

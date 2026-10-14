@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Radiation, AlertTriangle, Play, Users, Shuffle, ShieldCheck, Mic } from 'lucide-react';
+import { Radiation, Play, Users, Shuffle, ShieldCheck, Mic, MicOff, CheckCircle2 } from 'lucide-react';
 import { sound } from '../soundEngine';
 
 interface JoinCreateScreenProps {
@@ -8,6 +8,7 @@ interface JoinCreateScreenProps {
   onCreateRoom: (hasMic: boolean) => void;
   onJoinRoom: (code: string, hasMic: boolean) => void;
   errorMessage?: string;
+  isConnected?: boolean;
 }
 
 const SOVIET_NAMES = [
@@ -29,11 +30,13 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
   setPlayerName,
   onCreateRoom,
   onJoinRoom,
-  errorMessage
+  errorMessage,
+  isConnected = true
 }) => {
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [activeTab, setActiveTab] = useState<'JOIN' | 'CREATE'>('CREATE');
   const [requestingMic, setRequestingMic] = useState(false);
+  const [micGranted, setMicGranted] = useState<boolean | null>(null);
 
   const randomizeName = () => {
     sound.playClick();
@@ -41,17 +44,45 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
     setPlayerName(`Operario ${random}`);
   };
 
+  const handleManualMicCheck = async () => {
+    sound.playClick();
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setMicGranted(true);
+        stream.getTracks().forEach(t => t.stop());
+      } catch (e) {
+        setMicGranted(false);
+      }
+    } else {
+      setMicGranted(false);
+    }
+  };
+
   const requestMicAndProceed = async (proceedFn: (hasMic: boolean) => void) => {
+    if (micGranted !== null) {
+      proceedFn(micGranted);
+      return;
+    }
+
     setRequestingMic(true);
     let hasMic = false;
     if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        hasMic = true;
-        stream.getTracks().forEach(t => t.stop());
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+        const streamPromise = navigator.mediaDevices.getUserMedia({ audio: true });
+        const result = await Promise.race([streamPromise, timeoutPromise]);
+        if (result) {
+          hasMic = true;
+          setMicGranted(true);
+          result.getTracks().forEach(t => t.stop());
+        } else {
+          hasMic = false;
+        }
       } catch (err) {
-        console.warn('Microphone permission denied or unavailable:', err);
+        console.warn('Microphone permission not granted:', err);
         hasMic = false;
+        setMicGranted(false);
       }
     }
     setRequestingMic(false);
@@ -61,8 +92,9 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     sound.playClick();
+    const validName = playerName.trim() || 'Operario Dyatlov';
     if (!playerName.trim()) {
-      randomizeName();
+      setPlayerName(validName);
     }
     requestMicAndProceed((hasMic) => {
       onCreateRoom(hasMic);
@@ -72,8 +104,9 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     sound.playClick();
+    const validName = playerName.trim() || 'Operario Dyatlov';
     if (!playerName.trim()) {
-      randomizeName();
+      setPlayerName(validName);
     }
     if (roomCodeInput.trim().length >= 4) {
       requestMicAndProceed((hasMic) => {
@@ -85,7 +118,7 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
   return (
     <div className="flex-1 flex flex-col justify-between p-4 max-w-md mx-auto w-full overflow-y-auto">
       {/* Top Banner */}
-      <div className="flex flex-col items-center text-center mt-2">
+      <div className="flex flex-col items-center text-center mt-1">
         <div className="hazard-stripes w-full h-3 border-2 border-black mb-3 shadow-brutal-sm" />
         
         <div className="relative inline-block mb-2">
@@ -104,18 +137,15 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
           Simulador de Crisis Nuclear RBMK-1000
         </p>
 
-        <div className="bg-[#1C1E24] border-2 border-[#3F4452] p-2 mt-3 text-left w-full shadow-brutal-sm">
-          <div className="flex items-center gap-1.5 text-[#FF2A2A] text-xs font-bold uppercase mb-1">
-            <AlertTriangle className="w-3.5 h-3.5" /> Directiva de Emergencia:
+        {!isConnected && (
+          <div className="bg-[#FF9900]/20 border-2 border-[#FF9900] p-2 mt-2 text-xs text-[#FF9900] font-bold w-full animate-pulse text-center">
+            ⚠️ Conectando al servidor WebSocket (puerto 3001)...
           </div>
-          <p className="text-[11px] text-gray-300 leading-tight">
-            El núcleo se calienta a velocidad crítica. Coordínate con 2 a 4 operarios desde vuestros móviles antes de que la presión vuele la cubierta del reactor.
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Form Card */}
-      <div className="bg-[#1C1E24] border-4 border-black p-4 my-3 shadow-brutal flex flex-col gap-4">
+      <div className="bg-[#1C1E24] border-4 border-black p-4 my-2 shadow-brutal flex flex-col gap-3">
         {/* Operator Name */}
         <div>
           <label className="block text-xs font-bold text-gray-300 uppercase mb-1.5">
@@ -141,16 +171,38 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
           </div>
         </div>
 
-        {/* Mic notice */}
-        <div className="bg-black/60 border border-gray-700 p-2 text-[10px] text-gray-300 flex items-center gap-2">
-          <Mic className="w-4 h-4 text-[#00FF66] shrink-0" />
-          <span>
-            Al pulsar el botón se solicitará acceso al micrófono. Si no lo aceptas, quedarás exento de órdenes acústicas (gritar).
-          </span>
+        {/* Microphone Permission status & check button */}
+        <div className="bg-black/60 border border-gray-700 p-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {micGranted === true ? (
+              <CheckCircle2 className="w-4 h-4 text-[#00FF66] shrink-0" />
+            ) : micGranted === false ? (
+              <MicOff className="w-4 h-4 text-gray-500 shrink-0" />
+            ) : (
+              <Mic className="w-4 h-4 text-[#FFD600] shrink-0" />
+            )}
+            <div className="text-[10px] leading-tight">
+              <span className="font-bold text-gray-200 block">
+                {micGranted === true ? 'Micrófono Activado' : micGranted === false ? 'Sin Micrófono (Exento de gritar)' : 'Permiso de Micrófono'}
+              </span>
+              <span className="text-gray-400 text-[9px]">
+                {micGranted === true ? 'Podrás recibir órdenes acústicas' : 'Se pedirá permiso o puedes probarlo aquí'}
+              </span>
+            </div>
+          </div>
+          {micGranted === null && (
+            <button
+              type="button"
+              onClick={handleManualMicCheck}
+              className="px-2 py-1 bg-[#2A2D37] border border-gray-600 hover:bg-[#3F4452] text-[10px] font-bold text-[#FFD600] active:scale-95"
+            >
+              Permitir
+            </button>
+          )}
         </div>
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-2 gap-2 border-t-2 border-gray-700 pt-3">
+        <div className="grid grid-cols-2 gap-2 border-t-2 border-gray-700 pt-2.5">
           <button
             type="button"
             onClick={() => {
@@ -183,24 +235,21 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
 
         {/* Create Mode */}
         {activeTab === 'CREATE' ? (
-          <form onSubmit={handleCreate} className="flex flex-col gap-3">
-            <p className="text-[11px] text-gray-400">
-              Crea una nueva sala de operaciones. Recibirás un código de 4 letras para compartir con tus camaradas de turno.
-            </p>
+          <form onSubmit={handleCreate} className="flex flex-col gap-2.5">
             <button
               type="submit"
               disabled={requestingMic}
               className="w-full bg-[#FFD600] hover:bg-yellow-400 active:translate-y-1 text-black font-black uppercase py-3 px-4 border-4 border-black text-sm tracking-wider flex items-center justify-center gap-2 shadow-brutal transition-all disabled:opacity-50"
             >
               <Play className="w-5 h-5 fill-black" />
-              {requestingMic ? 'SOLICITANDO MICRO...' : 'ABRIR SALA DE CONTROL'}
+              {requestingMic ? 'CONECTANDO...' : 'ABRIR SALA DE CONTROL'}
             </button>
           </form>
         ) : (
           /* Join Mode */
-          <form onSubmit={handleJoin} className="flex flex-col gap-3">
+          <form onSubmit={handleJoin} className="flex flex-col gap-2.5">
             <div>
-              <label className="block text-xs font-bold text-gray-300 uppercase mb-1">
+              <label className="block text-[11px] font-bold text-gray-300 uppercase mb-1">
                 Código de 4 Letras:
               </label>
               <input
@@ -209,7 +258,7 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
                 onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
                 placeholder="EJ: AZ5X"
                 maxLength={4}
-                className="w-full bg-black border-2 border-gray-600 px-3 py-2 text-center text-lg font-black tracking-widest text-[#00F0FF] font-mono uppercase focus:outline-none focus:border-[#00F0FF]"
+                className="w-full bg-black border-2 border-gray-600 px-3 py-1.5 text-center text-lg font-black tracking-widest text-[#00F0FF] font-mono uppercase focus:outline-none focus:border-[#00F0FF]"
               />
             </div>
             <button
@@ -218,7 +267,7 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
               className="w-full bg-[#00F0FF] hover:bg-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed active:translate-y-1 text-black font-black uppercase py-3 px-4 border-4 border-black text-sm tracking-wider flex items-center justify-center gap-2 shadow-brutal transition-all"
             >
               <Users className="w-5 h-5" />
-              {requestingMic ? 'SOLICITANDO MICRO...' : 'CONECTAR AL TURNO'}
+              {requestingMic ? 'CONECTANDO...' : 'CONECTAR AL TURNO'}
             </button>
           </form>
         )}
@@ -231,7 +280,7 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
       </div>
 
       {/* Bottom Footer Notice */}
-      <div className="text-center text-[10px] text-gray-500 uppercase tracking-widest pb-2">
+      <div className="text-center text-[10px] text-gray-500 uppercase tracking-widest pb-1">
         <div className="flex items-center justify-center gap-1">
           <ShieldCheck className="w-3 h-3 text-[#00FF66]" /> PROTOCOLO DE TIEMPO REAL ACTIVO // PUERTO 3001
         </div>

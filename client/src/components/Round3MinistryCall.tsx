@@ -34,11 +34,11 @@ export const Round3MinistryCall: React.FC<Round3Props> = ({
             PRUEBA 3: LLAMADA DE MOSCÚ
           </span>
           <span className="text-xs text-gray-300 font-bold">
-            PREGUNTA {round3.questionNumber} DE 3
+            PREGUNTA {round3.questionNumber} DE 5
           </span>
         </div>
         <div className="flex gap-1">
-          {[1, 2, 3].map((num) => (
+          {[1, 2, 3, 4, 5].map((num) => (
             <div
               key={num}
               className={`w-5 h-5 border border-black flex items-center justify-center text-[10px] font-black ${

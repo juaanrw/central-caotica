@@ -84,6 +84,7 @@ export interface TriviaOption {
 
 export interface Round3Question {
   questionNumber: number;
+  totalQuestions: number;
   prompt: string;
   options: TriviaOption[];
   startTime: number;

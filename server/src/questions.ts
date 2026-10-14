@@ -66,6 +66,71 @@ export const GENERAL_CULTURE_TRIVIA: TriviaQuestionRaw[] = [
     prompt: "¿Cuántos lados tiene exactamente la figura geométrica conocida como heptágono?",
     correctAnswer: "7 lados",
     distractors: ["6 lados", "8 lados", "9 lados"]
+  },
+  {
+    prompt: "¿Cuál es el río más caudaloso y largo del planeta Tierra según las mediciones modernas?",
+    correctAnswer: "Río Amazonas",
+    distractors: ["Río Nilo", "Río Misisipi", "Río Yangtsé"]
+  },
+  {
+    prompt: "¿Cuál es el país con mayor superficie terrestre total del mundo?",
+    correctAnswer: "Rusia",
+    distractors: ["Canadá", "China", "Estados Unidos"]
+  },
+  {
+    prompt: "¿Qué metal es líquido a temperatura ambiente estándar (20°C)?",
+    correctAnswer: "Mercurio",
+    distractors: ["Plomo", "Galio", "Estaño"]
+  },
+  {
+    prompt: "¡PREGUNTA GEOGRÁFICA! ¿Cuál es la capital oficial de Japón?",
+    correctAnswer: "Tokio",
+    distractors: ["Kioto", "Osaka", "Seúl"]
+  },
+  {
+    prompt: "¿Quién escribió la célebre tragedia teatral 'Romeo y Julieta'?",
+    correctAnswer: "William Shakespeare",
+    distractors: ["Miguel de Cervantes", "Dante Alighieri", "Molière"]
+  },
+  {
+    prompt: "¿Qué órgano del cuerpo humano es el encargado principal de producir insulina?",
+    correctAnswer: "Páncreas",
+    distractors: ["Hígado", "Riñón", "Bazo"]
+  },
+  {
+    prompt: "¡FECHA HISTÓRICA! ¿En qué año se produjo la histórica caída del Muro de Berlín?",
+    correctAnswer: "1989",
+    distractors: ["1991", "1985", "1975"]
+  },
+  {
+    prompt: "En la mitología griega, ¿quién es el soberano dios de los mares y océanos?",
+    correctAnswer: "Poseidón",
+    distractors: ["Zeus", "Hades", "Ares"]
+  },
+  {
+    prompt: "¿Cuál es la moneda de curso legal oficial del Reino Unido?",
+    correctAnswer: "Libra esterlina",
+    distractors: ["Euro", "Corona británica", "Franco"]
+  },
+  {
+    prompt: "¿Qué gas absorben principalmente las plantas de la atmósfera durante la fotosíntesis?",
+    correctAnswer: "Dióxido de carbono (CO₂)",
+    distractors: ["Oxígeno (O₂)", "Nitrógeno (N₂)", "Metano (CH₄)"]
+  },
+  {
+    prompt: "¿Cuántos minutos tiene exactamente un día completo de 24 horas?",
+    correctAnswer: "1.440 minutos",
+    distractors: ["1.200 minutos", "86.400 minutos", "720 minutos"]
+  },
+  {
+    prompt: "¿En qué legendaria ciudad se celebraron los primeros Juegos Olímpicos de la era moderna en 1896?",
+    correctAnswer: "Atenas",
+    distractors: ["Roma", "París", "Londres"]
+  },
+  {
+    prompt: "¿Quién es el autor de la célebre pintura del Renacimiento 'La Gioconda' (Mona Lisa)?",
+    correctAnswer: "Leonardo da Vinci",
+    distractors: ["Miguel Ángel", "Rafael Sanzio", "Sandro Botticelli"]
   }
 ];
 
