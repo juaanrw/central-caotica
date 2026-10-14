@@ -4,6 +4,7 @@ import {
   ActionType, 
   Round1Step, 
   Round2State, 
+  AZ5Console,
   TriviaOption,
   AwardInfo
 } from './types';
@@ -333,7 +334,7 @@ export class GameManager {
     // Dynamic role assignment based on player count:
     // 2 players: 1 TECNICO_TOTAL, 1 INGENIERO_TOTAL
     // 3 players: 1 TECNICO_TOTAL, 1 INGENIERO_A, 1 INGENIERO_B
-    // 4 players: 1 TECNICO_ALFA_BETA, 1 TECNICO_GAMMA_DELTA, 1 INGENIERO_A, 1 INGENIERO_B
+    // 4 players: 1 TECNICO_CONSOLA_1, 1 TECNICO_CONSOLA_2, 1 INGENIERO_A, 1 INGENIERO_B
     if (count === 2) {
       shuffled[0].role = 'TECNICO_TOTAL';
       shuffled[1].role = 'INGENIERO_TOTAL';
@@ -342,75 +343,130 @@ export class GameManager {
       shuffled[1].role = 'INGENIERO_A';
       shuffled[2].role = 'INGENIERO_B';
     } else {
-      // 4 or more players
-      shuffled[0].role = 'TECNICO_ALFA_BETA';
-      shuffled[1].role = 'TECNICO_GAMMA_DELTA';
+      // 4 or more players: Two independent technicians and two manual engineers
+      shuffled[0].role = 'TECNICO_CONSOLA_1';
+      shuffled[1].role = 'TECNICO_CONSOLA_2';
       shuffled[2].role = 'INGENIERO_A';
       shuffled[3].role = 'INGENIERO_B';
     }
 
-    // Select random rule from AZ5_RULES
-    const chosenRule = AZ5_RULES[Math.floor(Math.random() * AZ5_RULES.length)];
-    
-    // Choose pressure based on rule condition
-    let pressure = 50;
-    if (chosenRule.pressureCondition === 'ALTA') {
-      pressure = Math.floor(Math.random() * 25 + (chosenRule.pressureThreshold + 4));
+    // Select primary rule
+    const rule1 = AZ5_RULES[Math.floor(Math.random() * AZ5_RULES.length)];
+    let pressure1 = 50;
+    if (rule1.pressureCondition === 'ALTA') {
+      pressure1 = Math.floor(Math.random() * 25 + (rule1.pressureThreshold + 4));
     } else {
-      pressure = Math.floor(Math.random() * 20 + (chosenRule.pressureThreshold - 22));
+      pressure1 = Math.floor(Math.random() * 20 + (rule1.pressureThreshold - 22));
+    }
+
+    let dualConsolesData: { console1: AZ5Console; console2: AZ5Console } | undefined = undefined;
+
+    if (count >= 4) {
+      // Pick a distinct rule for console 2
+      const otherRules = AZ5_RULES.filter(r => r.id !== rule1.id);
+      const rule2 = otherRules[Math.floor(Math.random() * otherRules.length)] || AZ5_RULES[0];
+      let pressure2 = 50;
+      if (rule2.pressureCondition === 'ALTA') {
+        pressure2 = Math.floor(Math.random() * 25 + (rule2.pressureThreshold + 4));
+      } else {
+        pressure2 = Math.floor(Math.random() * 20 + (rule2.pressureThreshold - 22));
+      }
+
+      dualConsolesData = {
+        console1: {
+          id: 1,
+          title: 'CONSOLA 1: REACTOR PRIMARIO',
+          coreColor: rule1.coreColor,
+          pressure: pressure1,
+          currentSwitches: { alfa: false, beta: false, gamma: false, delta: false },
+          requiredSwitches: { ...rule1.requiredSwitches },
+          isStabilized: false
+        },
+        console2: {
+          id: 2,
+          title: 'CONSOLA 2: GENERADOR SECUNDARIO',
+          coreColor: rule2.coreColor,
+          pressure: pressure2,
+          currentSwitches: { alfa: false, beta: false, gamma: false, delta: false },
+          requiredSwitches: { ...rule2.requiredSwitches },
+          isStabilized: false
+        }
+      };
     }
 
     const round2State: Round2State = {
-      coreColor: chosenRule.coreColor,
-      pressure,
+      coreColor: rule1.coreColor,
+      pressure: pressure1,
       currentSwitches: { alfa: false, beta: false, gamma: false, delta: false },
       manualFull: MANUAL_FULL_RULES,
       manualPartA: MANUAL_PART_A_RULES,
       manualPartB: MANUAL_PART_B_RULES,
-      requiredSwitches: { ...chosenRule.requiredSwitches },
-      startTime: Date.now()
+      requiredSwitches: { ...rule1.requiredSwitches },
+      startTime: Date.now(),
+      dualConsoles: dualConsolesData
     };
 
     room.round2 = round2State;
 
     // Bot support:
-    // If bot is Engineer A or B or Engineer Total:
     const botEngA = room.players.find(p => p.isBot && p.role === 'INGENIERO_A');
     const botEngB = room.players.find(p => p.isBot && p.role === 'INGENIERO_B');
     const botEngTotal = room.players.find(p => p.isBot && p.role === 'INGENIERO_TOTAL');
 
-    if (botEngA) {
-      setTimeout(() => {
-        room.botRadioMessage = `📻 RADIO (${botEngA.name}): "¡Núcleo ${chosenRule.coreColor} detectado! Eso activa la ${chosenRule.phaseCode}."`;
-        this.emit(room, 'stateUpdate', room);
-      }, 1200);
-    }
-    if (botEngB) {
-      setTimeout(() => {
-        room.botRadioMessage = `📻 RADIO (${botEngB.name}): "En ${chosenRule.phaseCode} con ${pressure} bar, ¡las válvulas requeridas son: ${chosenRule.valvesText}!"`;
-        this.emit(room, 'stateUpdate', room);
-      }, 2500);
-    }
-    if (botEngTotal) {
-      setTimeout(() => {
-        room.botRadioMessage = `📻 RADIO (${botEngTotal.name}): "¡El manual dice que con Núcleo ${chosenRule.coreColor} y ${pressure} bar conectéis: ${chosenRule.valvesText}!"`;
-        this.emit(room, 'stateUpdate', room);
-      }, 1500);
-    }
+    if (count < 4) {
+      if (botEngA) {
+        setTimeout(() => {
+          room.botRadioMessage = `📻 RADIO (${botEngA.name}): "¡Núcleo ${rule1.coreColor} detectado! Eso activa la ${rule1.phaseCode}."`;
+          this.emit(room, 'stateUpdate', room);
+        }, 1200);
+      }
+      if (botEngB) {
+        setTimeout(() => {
+          room.botRadioMessage = `📻 RADIO (${botEngB.name}): "En ${rule1.phaseCode} con ${pressure1} bar, ¡las válvulas requeridas son: ${rule1.valvesText}!"`;
+          this.emit(room, 'stateUpdate', room);
+        }, 2500);
+      }
+      if (botEngTotal) {
+        setTimeout(() => {
+          room.botRadioMessage = `📻 RADIO (${botEngTotal.name}): "¡El manual dice que con Núcleo ${rule1.coreColor} y ${pressure1} bar conectéis: ${rule1.valvesText}!"`;
+          this.emit(room, 'stateUpdate', room);
+        }, 1500);
+      }
 
-    // If technicians are only bots, auto-stabilize after delay
-    const humanTecnico = room.players.some(p => !p.isBot && (p.role === 'TECNICO_TOTAL' || p.role === 'TECNICO_ALFA_BETA' || p.role === 'TECNICO_GAMMA_DELTA'));
-    if (!humanTecnico) {
-      const timeout = setTimeout(() => {
-        if (room.round2) {
-          room.round2.currentSwitches = { ...chosenRule.requiredSwitches };
-          const botTec = room.players.find(p => p.isBot && (p.role === 'TECNICO_TOTAL' || p.role === 'TECNICO_GAMMA_DELTA'));
-          if (botTec) {
-            this.stabilizeAZ5(room.code, botTec.id);
+      // If bot is single technician:
+      const botTecTotal = room.players.find(p => p.isBot && p.role === 'TECNICO_TOTAL');
+      if (botTecTotal) {
+        const timeout = setTimeout(() => {
+          if (room.round2) {
+            room.round2.currentSwitches = { ...rule1.requiredSwitches };
+            this.stabilizeAZ5(room.code, botTecTotal.id);
           }
-        }
-      }, 3500);
-      this.botTimeouts.set(`${room.code}_r2`, timeout);
+        }, 3500);
+        this.botTimeouts.set(`${room.code}_r2`, timeout);
+      }
+    } else if (dualConsolesData) {
+      // 4-player bot automation
+      const botTec1 = room.players.find(p => p.isBot && p.role === 'TECNICO_CONSOLA_1');
+      if (botTec1) {
+        const timeout = setTimeout(() => {
+          if (room.round2 && room.round2.dualConsoles) {
+            room.round2.dualConsoles.console1.currentSwitches = { ...room.round2.dualConsoles.console1.requiredSwitches };
+            this.stabilizeAZ5(room.code, botTec1.id);
+          }
+        }, 2800);
+        this.botTimeouts.set(`${room.code}_r2_c1`, timeout);
+      }
+
+      const botTec2 = room.players.find(p => p.isBot && p.role === 'TECNICO_CONSOLA_2');
+      if (botTec2) {
+        const timeout = setTimeout(() => {
+          if (room.round2 && room.round2.dualConsoles) {
+            room.round2.dualConsoles.console2.currentSwitches = { ...room.round2.dualConsoles.console2.requiredSwitches };
+            this.stabilizeAZ5(room.code, botTec2.id);
+          }
+        }, 3800);
+        this.botTimeouts.set(`${room.code}_r2_c2`, timeout);
+      }
     }
   }
 
@@ -421,19 +477,21 @@ export class GameManager {
     const player = room.players.find(p => p.id === playerId);
     if (!player || !player.role) return null;
 
-    // Check switch permissions
     if (player.role === 'TECNICO_TOTAL') {
-      // Allowed for all 4
-    } else if (player.role === 'TECNICO_ALFA_BETA') {
-      if (switchName !== 'alfa' && switchName !== 'beta') return null;
-    } else if (player.role === 'TECNICO_GAMMA_DELTA') {
-      if (switchName !== 'gamma' && switchName !== 'delta') return null;
+      room.round2.currentSwitches[switchName] = !room.round2.currentSwitches[switchName];
+    } else if (player.role === 'TECNICO_CONSOLA_1') {
+      if (room.round2.dualConsoles && !room.round2.dualConsoles.console1.isStabilized) {
+        room.round2.dualConsoles.console1.currentSwitches[switchName] = !room.round2.dualConsoles.console1.currentSwitches[switchName];
+      }
+    } else if (player.role === 'TECNICO_CONSOLA_2') {
+      if (room.round2.dualConsoles && !room.round2.dualConsoles.console2.isStabilized) {
+        room.round2.dualConsoles.console2.currentSwitches[switchName] = !room.round2.dualConsoles.console2.currentSwitches[switchName];
+      }
     } else {
       // Engineers cannot flip switches
       return null;
     }
 
-    room.round2.currentSwitches[switchName] = !room.round2.currentSwitches[switchName];
     return room;
   }
 
@@ -444,46 +502,106 @@ export class GameManager {
     const player = room.players.find(p => p.id === playerId);
     if (!player || !player.role) return false;
 
-    // Check who is allowed to stabilize
-    if (player.role !== 'TECNICO_TOTAL' && player.role !== 'TECNICO_GAMMA_DELTA' && player.role !== 'TECNICO_ALFA_BETA') {
-      return false;
-    }
+    // Check single panel (2 or 3 players)
+    if (player.role === 'TECNICO_TOTAL') {
+      const cur = room.round2.currentSwitches;
+      const req = room.round2.requiredSwitches;
 
-    const cur = room.round2.currentSwitches;
-    const req = room.round2.requiredSwitches;
+      const isMatch = cur.alfa === req.alfa &&
+                      cur.beta === req.beta &&
+                      cur.gamma === req.gamma &&
+                      cur.delta === req.delta;
 
-    const isMatch = cur.alfa === req.alfa &&
-                    cur.beta === req.beta &&
-                    cur.gamma === req.gamma &&
-                    cur.delta === req.delta;
+      if (!isMatch) {
+        player.stats.mistakes++;
+        room.currentStability = Math.max(50, room.currentStability - 200);
+        this.emit(room, 'az5Error', {
+          message: '¡DISPARO AZ-5 FALLIDO! La configuración de válvulas no coincide con el manual.'
+        });
+        this.emit(room, 'stateUpdate', room);
+        return false;
+      }
 
-    if (!isMatch) {
-      player.stats.mistakes++;
-      room.currentStability = Math.max(50, room.currentStability - 200);
-      this.emit(room, 'az5Error', {
-        message: '¡DISPARO AZ-5 FALLIDO! La configuración de válvulas no coincide con el manual.'
+      // Success!
+      const elapsed = Date.now() - room.round2.startTime;
+      player.stats.reactionTimes.push(elapsed);
+      player.stats.actionsCompleted++;
+
+      room.round2Scores = Math.max(100, 1000 - Math.floor((elapsed / 1000) * 35));
+
+      this.emit(room, 'az5Success', {
+        score: room.round2Scores,
+        elapsedMs: elapsed
       });
+
+      this.initRound3(room);
+      this.emit(room, 'roundCompleted', { round: 2, score: room.round2Scores });
       this.emit(room, 'stateUpdate', room);
-      return false;
+      return true;
     }
 
-    // Success!
-    const elapsed = Date.now() - room.round2.startTime;
-    player.stats.reactionTimes.push(elapsed);
-    player.stats.actionsCompleted++;
+    // Check dual independent consoles (4 or more players)
+    if (player.role === 'TECNICO_CONSOLA_1' || player.role === 'TECNICO_CONSOLA_2') {
+      if (!room.round2.dualConsoles) return false;
 
-    // Stability decay: -35 pts per second
-    room.round2Scores = Math.max(100, 1000 - Math.floor((elapsed / 1000) * 35));
+      const isConsola1 = player.role === 'TECNICO_CONSOLA_1';
+      const myConsole = isConsola1 
+        ? room.round2.dualConsoles.console1 
+        : room.round2.dualConsoles.console2;
+      const otherConsole = isConsola1 
+        ? room.round2.dualConsoles.console2 
+        : room.round2.dualConsoles.console1;
 
-    this.emit(room, 'az5Success', {
-      score: room.round2Scores,
-      elapsedMs: elapsed
-    });
+      if (myConsole.isStabilized) return true; // Already stabilized
 
-    this.initRound3(room);
-    this.emit(room, 'roundCompleted', { round: 2, score: room.round2Scores });
-    this.emit(room, 'stateUpdate', room);
-    return true;
+      const cur = myConsole.currentSwitches;
+      const req = myConsole.requiredSwitches;
+
+      const isMatch = cur.alfa === req.alfa &&
+                      cur.beta === req.beta &&
+                      cur.gamma === req.gamma &&
+                      cur.delta === req.delta;
+
+      if (!isMatch) {
+        player.stats.mistakes++;
+        room.currentStability = Math.max(50, room.currentStability - 150);
+        this.emit(room, 'az5Error', {
+          message: `¡ERROR EN ${myConsole.title}! Las válvulas no coinciden con el manual.`
+        });
+        this.emit(room, 'stateUpdate', room);
+        return false;
+      }
+
+      // Success on this console!
+      myConsole.isStabilized = true;
+      player.stats.actionsCompleted++;
+      const elapsed = Date.now() - room.round2.startTime;
+      player.stats.reactionTimes.push(elapsed);
+
+      if (otherConsole.isStabilized) {
+        // BOTH CONSOLES ARE STABILIZED! Advance to Round 3!
+        room.round2Scores = Math.max(100, 1000 - Math.floor((elapsed / 1000) * 35));
+        this.emit(room, 'az5Success', {
+          score: room.round2Scores,
+          elapsedMs: elapsed
+        });
+        this.initRound3(room);
+        this.emit(room, 'roundCompleted', { round: 2, score: room.round2Scores });
+        this.emit(room, 'stateUpdate', room);
+        return true;
+      } else {
+        // One console stabilized, waiting for the other
+        this.emit(room, 'az5ConsoleStabilized', {
+          consoleId: myConsole.id,
+          title: myConsole.title,
+          operatorName: player.name
+        });
+        this.emit(room, 'stateUpdate', room);
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // --- ROUND 3: LLAMADA DEL MINISTERIO (CULTURA GENERAL - 5 PREGUNTAS ÚNICAS) ---

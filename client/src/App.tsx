@@ -166,7 +166,7 @@ export const App: React.FC = () => {
       <Header room={room} playerName={playerName} />
 
       {/* Body screens */}
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden relative z-10">
         {!room && (
           <JoinCreateScreen
             playerName={playerName}

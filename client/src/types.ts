@@ -1,8 +1,8 @@
 export type PlayerRole = 
   | 'TECNICO_TOTAL' 
   | 'INGENIERO_TOTAL' 
-  | 'TECNICO_ALFA_BETA' 
-  | 'TECNICO_GAMMA_DELTA' 
+  | 'TECNICO_CONSOLA_1' 
+  | 'TECNICO_CONSOLA_2' 
   | 'INGENIERO_A' 
   | 'INGENIERO_B';
 
@@ -38,6 +38,26 @@ export interface Round1Step {
   startTime: number;
 }
 
+export interface AZ5Console {
+  id: 1 | 2;
+  title: string;
+  coreColor: 'ROJO' | 'AMBAR' | 'VERDE';
+  pressure: number;
+  currentSwitches: {
+    alfa: boolean;
+    beta: boolean;
+    gamma: boolean;
+    delta: boolean;
+  };
+  requiredSwitches: {
+    alfa: boolean;
+    beta: boolean;
+    gamma: boolean;
+    delta: boolean;
+  };
+  isStabilized: boolean;
+}
+
 export interface Round2State {
   coreColor: 'ROJO' | 'AMBAR' | 'VERDE';
   pressure: number;
@@ -57,6 +77,10 @@ export interface Round2State {
     delta: boolean;
   };
   startTime: number;
+  dualConsoles?: {
+    console1: AZ5Console;
+    console2: AZ5Console;
+  };
 }
 
 export interface TriviaOption {

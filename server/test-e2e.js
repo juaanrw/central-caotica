@@ -72,8 +72,14 @@ async function runTest() {
   const hostPlayer = currentRoom.players.find(p => p.id === socket1.id);
   const isTecnico = hostPlayer && hostPlayer.role && hostPlayer.role.startsWith('TECNICO');
   if (isTecnico) {
+    const targetConsole = hostPlayer.role === 'TECNICO_CONSOLA_1' && r2.dualConsoles
+      ? r2.dualConsoles.console1
+      : hostPlayer.role === 'TECNICO_CONSOLA_2' && r2.dualConsoles
+      ? r2.dualConsoles.console2
+      : r2;
+    const reqSwitches = targetConsole.requiredSwitches;
     for (const sw of ['alfa', 'beta', 'gamma', 'delta']) {
-      if (req[sw] !== currentRoom.round2.currentSwitches[sw]) {
+      if (reqSwitches[sw] !== targetConsole.currentSwitches[sw]) {
         socket1.emit('toggleSwitch', { roomCode: currentRoom.code, switchName: sw });
         await new Promise((resolve) => setTimeout(resolve, 150));
       }

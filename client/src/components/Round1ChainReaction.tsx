@@ -40,6 +40,12 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const shoutFramesRef = useRef<number>(0);
+  const shoutTriggeredRef = useRef<boolean>(false);
+
+  // Keep a ref to the latest step to prevent stale closures inside requestAnimationFrame
+  const stepRef = useRef(step);
+  stepRef.current = step;
 
   // Reset controls state on new step
   useEffect(() => {
@@ -47,6 +53,8 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
     setValveProgress(0);
     setSliderValue(0);
     setPumpCount(0);
+    shoutFramesRef.current = 0;
+    shoutTriggeredRef.current = false;
     sound.playGeiger(2);
   }, [step.stepNumber]);
 
@@ -76,18 +84,37 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
         if (!analyserRef.current) return;
         analyserRef.current.getByteFrequencyData(dataArray);
 
-        let sum = 0;
+        let maxVal = 0;
+        let sumSquares = 0;
         for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i];
+          const val = dataArray[i];
+          if (val > maxVal) maxVal = val;
+          sumSquares += val * val;
         }
-        const avg = sum / bufferLength;
-        const volumePercent = Math.min(100, Math.round((avg / 128) * 100));
-        setMicVolume(volumePercent);
 
-        // If shout detected (volume > 45%)
-        if (volumePercent >= 45) {
-          sound.playSuccess();
-          triggerAction('SHOUT');
+        // Peak volume from 0 to 100%
+        const peakPercent = Math.min(100, Math.round((maxVal / 255) * 100));
+        const rms = Math.sqrt(sumSquares / bufferLength);
+        const rmsPercent = Math.min(100, Math.round((rms / 255) * 100));
+        setMicVolume(peakPercent);
+
+        const currentStep = stepRef.current;
+        const isMyTurnToShout = currentStep.executorId === currentSocketId && currentStep.targetAction === 'SHOUT';
+
+        // STRICT SHOUT DETECTION:
+        // 1. MUST be this player's turn to execute a SHOUT
+        // 2. Volume must be high (peak >= 85% AND rms >= 40%) - requires an actual loud shout
+        // 3. Must be sustained for at least 3 animation frames to avoid instant audio pops
+        if (isMyTurnToShout && peakPercent >= 85 && rmsPercent >= 40) {
+          shoutFramesRef.current++;
+          if (shoutFramesRef.current >= 3 && !shoutTriggeredRef.current) {
+            shoutTriggeredRef.current = true;
+            shoutFramesRef.current = 0;
+            sound.playSuccess();
+            triggerAction('SHOUT');
+          }
+        } else {
+          shoutFramesRef.current = 0;
         }
 
         animFrameRef.current = requestAnimationFrame(checkVolume);
@@ -339,7 +366,7 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
                 5. SENSOR ACÚSTICO
               </div>
               <div className="text-[9px] text-gray-400 font-mono">
-                {micActive ? 'CANAL DE AUDIO ACTIVO' : 'MODO ALTERNATIVO'}
+                {micActive ? 'GRITAR FUERTE (UMBRAL: 85%)' : 'MODO BOTÓN DIRECTO'}
               </div>
             </div>
           </div>
@@ -351,11 +378,13 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
             >
               ACTIVAR
             </button>
-            <div className="w-16 bg-black h-3 border border-gray-700">
+            <div className="w-16 bg-black h-3 border border-gray-700 relative overflow-hidden" title="Nivel de voz (Supera la línea blanca para activar)">
               <div
-                className={`h-full transition-all ${micVolume > 40 ? 'bg-[#FF2A2A]' : 'bg-[#00FF66]'}`}
+                className={`h-full transition-all ${micVolume >= 85 ? 'bg-[#FF2A2A]' : micVolume > 50 ? 'bg-[#FFD600]' : 'bg-[#00FF66]'}`}
                 style={{ width: `${micVolume}%` }}
               />
+              {/* White vertical line showing 85% shout threshold */}
+              <div className="absolute top-0 bottom-0 left-[85%] w-0.5 bg-white/80 z-10" />
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Radiation, Play, Users, Shuffle, ShieldCheck, Mic, MicOff, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Radiation, Play, Users, Shuffle, ShieldCheck, Mic, MicOff, CheckCircle2 } from 'lucide-react';
 import { sound } from '../soundEngine';
 
 interface JoinCreateScreenProps {
@@ -37,18 +37,6 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
   const [activeTab, setActiveTab] = useState<'JOIN' | 'CREATE'>('CREATE');
   const [requestingMic, setRequestingMic] = useState(false);
   const [micGranted, setMicGranted] = useState<boolean | null>(null);
-
-  const isHttpOnLan = typeof window !== 'undefined' && 
-    window.location.protocol === 'http:' && 
-    window.location.hostname !== 'localhost' && 
-    window.location.hostname !== '127.0.0.1';
-
-  const switchToHttps = () => {
-    sound.playClick();
-    if (typeof window !== 'undefined') {
-      window.location.href = `https://${window.location.hostname}:${window.location.port || '5173'}${window.location.pathname}`;
-    }
-  };
 
   const randomizeName = () => {
     sound.playClick();
@@ -185,25 +173,6 @@ export const JoinCreateScreen: React.FC<JoinCreateScreenProps> = ({
           </div>
         </div>
 
-        {/* Aviso si está en móvil por HTTP */}
-        {isHttpOnLan && (
-          <div className="bg-[#FF2A2A]/20 border-2 border-[#FF2A2A] p-2.5 text-xs text-white">
-            <div className="font-black text-[#FFD600] flex items-center gap-1.5 mb-1">
-              <AlertTriangle className="w-4 h-4 text-[#FF2A2A] shrink-0" />
-              AVISO MÓVIL: MICRÓFONO EN HTTP
-            </div>
-            <p className="text-[10px] text-gray-300 mb-2 leading-tight">
-              Los navegadores móviles (Chrome/Safari) <b>bloquean el micrófono en HTTP</b>. Para recibir órdenes de gritar, conéctate por <b>HTTPS</b>.
-            </p>
-            <button
-              type="button"
-              onClick={switchToHttps}
-              className="w-full bg-[#00FF66] hover:bg-green-400 text-black font-black uppercase py-1.5 px-2 text-[11px] border-2 border-black shadow-brutal-sm active:translate-y-0.5 transition-all"
-            >
-              🔒 CAMBIAR A HTTPS EN ESTE MÓVIL
-            </button>
-          </div>
-        )}
 
         {/* Microphone Permission status & check button */}
         <div className="bg-black/60 border border-gray-700 p-2.5 flex items-center justify-between gap-2">

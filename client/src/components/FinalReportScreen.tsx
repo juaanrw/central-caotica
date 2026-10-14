@@ -37,7 +37,7 @@ export const FinalReportScreen: React.FC<FinalReportProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-between p-3 max-w-md mx-auto w-full select-none overflow-y-auto">
+    <div className="flex-1 min-h-0 overflow-y-auto p-3 max-w-md mx-auto w-full select-none flex flex-col gap-3 pb-10">
       {/* Top Title Banner */}
       <div className="text-center mt-1">
         <div className="hazard-stripes w-full h-2 border border-black mb-2" />
