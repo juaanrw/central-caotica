@@ -88,7 +88,7 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
             COORDINACIÓN ASIMÉTRICA ({room.players.length} OPERARIOS)
           </span>
         </div>
-        <div className="px-2 py-0.5 border-2 border-black font-black text-[10px] uppercase shadow-brutal-sm bg-[#FFD600] text-black max-w-[155px] truncate">
+        <div className="px-2 py-1 border-2 border-black font-black text-[9px] uppercase shadow-brutal-sm bg-[#FFD600] text-black max-w-[170px] leading-tight break-words text-right">
           {getRoleTitle()}
         </div>
       </div>
@@ -140,19 +140,17 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
                     <div className={`py-1 px-2 border-2 text-xs font-black uppercase tracking-widest ${getCoreColorClass(displayColor)}`}>
                       {displayColor}
                     </div>
-                    <span className="text-[8px] text-gray-400 block mt-1">Dicta esto al Ingeniero A</span>
                   </div>
 
                   {/* Pressure Manometer */}
                   <div className="bg-[#1C1E24] border-3 border-black p-2 text-center shadow-brutal">
                     <span className="text-[9px] uppercase font-bold text-gray-400 block mb-1">
-                      PRESIÓN EN BAR
+                      PRESIÓN DEL RECEPTÁCULO
                     </span>
                     <div className="flex items-center justify-center gap-1 text-[#00F0FF] font-black text-base font-mono">
                       <Gauge className="w-4 h-4" />
                       {displayPressure} BAR
                     </div>
-                    <span className="text-[8px] text-gray-400 block mt-1">Dicta esto al Ingeniero B</span>
                   </div>
                 </div>
 
@@ -162,7 +160,7 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
                     <span>
                       {isDual ? `TUS MANDOS: ${activeConsole?.title || 'TU CONSOLA'}` : 'TODAS LAS VÁLVULAS (ALFA / BETA / GAMMA / DELTA)'}
                     </span>
-                    <span className="text-[#FFD600] text-[9px]">Sigue el manual</span>
+                    <span className="text-gray-400 text-[9px] font-mono">SISTEMA AZ-5</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -234,16 +232,10 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
               {isIngenieroA && 'MANUAL PARTE A: MATRIZ DE FASES POR COLOR'}
               {isIngenieroB && 'MANUAL PARTE B: COMBINACIÓN DE VÁLVULAS'}
             </div>
-            <p className="text-[11px] font-bold text-gray-900 mt-1 leading-tight">
+            <p className="text-[10px] font-bold text-gray-900 mt-1 leading-tight font-mono">
               {isDual
-                ? (isIngenieroA
-                  ? '¡Hay 2 consolas independientes! Pregunta a Técnico 1 y Técnico 2 sus colores y diles qué fase corresponde a cada uno.'
-                  : '¡Hay 2 consolas independientes! Con la Fase y Presión de cada consola, diles qué válvulas abrir a cada técnico.')
-                : (isIngenieroTotal
-                  ? 'Pregunta al Técnico su Presión y Color de Núcleo y ordénale las válvulas a conectar.'
-                  : (isIngenieroA
-                    ? '¡El Técnico tiene el Color de Núcleo! Pregúntaselo y grita la FASE al Ingeniero B.'
-                    : '¡Pregunta al Ingeniero A la FASE y al Técnico la Presión, y di qué válvulas deben abrir!'))
+                ? 'PROCEDIMIENTO OPERATIVO PARA CENTRALES CON DOBLE CIRCUITO INDEPENDIENTE'
+                : 'PROCEDIMIENTO TÉCNICO OFICIAL DE ESTABILIZACIÓN RBMK-1000'
               }
             </p>
           </div>
@@ -279,8 +271,8 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
             </div>
           </div>
 
-          <div className="bg-[#2A2D37] border-2 border-gray-600 p-2 text-center text-xs text-gray-300 font-bold uppercase">
-            🗣️ ¡Hablad en voz alta para triangular la información y estabilizar ambas consolas!
+          <div className="bg-[#1C1E24] border-2 border-gray-700 p-2 text-center text-[10px] text-gray-400 font-mono uppercase">
+            REGISTRO TÉCNICO DE COMUNICACIONES INTERCOM
           </div>
         </div>
       )}

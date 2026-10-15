@@ -10,18 +10,21 @@ import {
   ConveyorStation,
   ConveyorCategory,
   ConveyorDestinationId,
-  TriviaOption,
+  DistributedQuestion,
+  DistributedOption,
+  Round3State,
+  QuestionAnswerType,
   AwardInfo
 } from './types';
 import { 
-  GENERAL_CULTURE_TRIVIA, 
+  CATEGORIZED_TRIVIA_DB, 
+  CategorizedQuestionRaw,
   AZ5_RULES, 
   MANUAL_PART_A_RULES, 
   MANUAL_PART_B_RULES, 
   MANUAL_FULL_RULES,
   CONVEYOR_CATEGORIES_POOL,
-  CONVEYOR_ITEMS_POOL,
-  TriviaQuestionRaw
+  CONVEYOR_ITEMS_POOL
 } from './questions';
 
 const ACTIONS: { type: ActionType; title: string; instructionPhrase: string }[] = [
@@ -57,7 +60,6 @@ export type BroadcastCallback = (room: RoomState, event: string, data?: any) => 
 export class GameManager {
   private rooms: Map<string, RoomState> = new Map();
   private botTimeouts: Map<string, NodeJS.Timeout> = new Map();
-  private roomTriviaPool: Map<string, TriviaQuestionRaw[]> = new Map();
   private broadcaster?: BroadcastCallback;
 
   public setBroadcaster(cb: BroadcastCallback) {
@@ -614,7 +616,7 @@ export class GameManager {
     return false;
   }
 
-  // --- ROUND 3: LLAMADA DEL MINISTERIO (CULTURA GENERAL - 5 PREGUNTAS ÚNICAS) ---
+  // --- ROUND 3: LLAMADA DEL MINISTERIO (CULTURA GENERAL DISTRIBUIDA) ---
 
   private initRound3(room: RoomState) {
     this.clearBotTimeouts(room.code);
@@ -623,97 +625,178 @@ export class GameManager {
     room.roundStartTime = Date.now();
     room.botRadioMessage = undefined;
 
-    // Pick 5 unique non-repeating questions for this room
-    const shuffled = [...GENERAL_CULTURE_TRIVIA].sort(() => Math.random() - 0.5);
-    this.roomTriviaPool.set(room.code, shuffled.slice(0, 5));
+    const playerCount = room.players.length;
+    let questionsPerPlayer = 1;
+    let totalQuestionsCount = 4;
+    if (playerCount === 2) {
+      questionsPerPlayer = 3;
+      totalQuestionsCount = 6;
+    } else if (playerCount === 3) {
+      questionsPerPlayer = 2;
+      totalQuestionsCount = 6;
+    } else {
+      questionsPerPlayer = 1;
+      totalQuestionsCount = 4;
+    }
 
-    this.initTriviaQuestion(room, 1);
-  }
+    // Pick unique question categories (NO TWO QUESTIONS SHARE THE SAME TYPE)
+    const availableCategories: QuestionAnswerType[] = [
+      'YEAR', 'PERSON', 'WORK', 'CITY', 'COUNTRY', 'SCIENCE', 'NUMBER', 'NATURE', 'COLOR'
+    ];
+    const shuffledCategories = [...availableCategories].sort(() => Math.random() - 0.5);
+    const chosenCategories = shuffledCategories.slice(0, totalQuestionsCount);
 
-  private initTriviaQuestion(room: RoomState, questionNumber: number) {
-    this.clearBotTimeouts(room.code);
+    // Pick 1 question from each unique category
+    const selectedQuestionsRaw: CategorizedQuestionRaw[] = chosenCategories.map(cat => {
+      const list = CATEGORIZED_TRIVIA_DB[cat];
+      return list[Math.floor(Math.random() * list.length)];
+    });
 
-    const pool = this.roomTriviaPool.get(room.code) || GENERAL_CULTURE_TRIVIA;
-    const qRaw = pool[questionNumber - 1] || pool[0];
-
-    const optionsRaw = [
-      { text: qRaw.correctAnswer, isCorrect: true },
-      ...qRaw.distractors.map(d => ({ text: d, isCorrect: false }))
-    ].sort(() => Math.random() - 0.5);
-
-    const players = room.players;
-    const triviaOptions: TriviaOption[] = optionsRaw.map((opt, idx) => {
-      const assignedPlayer = players[idx % players.length];
+    // Assign questions to players evenly
+    const distributedQuestions: DistributedQuestion[] = selectedQuestionsRaw.map((q, idx) => {
+      const playerIdx = Math.floor(idx / questionsPerPlayer) % playerCount;
+      const assignedPlayer = room.players[playerIdx];
       return {
-        id: `opt_${questionNumber}_${idx}`,
+        id: `q_${idx}`,
+        type: q.type,
+        prompt: q.prompt,
+        correctAnswerText: q.correctAnswer,
+        assignedPlayerId: assignedPlayer.id,
+        isSolved: false
+      };
+    });
+
+    // Options: Exactly 12 options total distributed across players
+    // If totalQuestionsCount === 6: 6 correct + 1 distractor each = 12 options
+    // If totalQuestionsCount === 4: 4 correct + 2 distractors each = 12 options
+    const distractorsPerQuestion = totalQuestionsCount === 6 ? 1 : 2;
+
+    const rawOptions: { text: string; isCorrect: boolean; targetQuestionId?: string }[] = [];
+    selectedQuestionsRaw.forEach((q, idx) => {
+      const qId = `q_${idx}`;
+      rawOptions.push({
+        text: q.correctAnswer,
+        isCorrect: true,
+        targetQuestionId: qId
+      });
+      const shuffledDistractors = [...q.distractors].sort(() => Math.random() - 0.5);
+      for (let d = 0; d < distractorsPerQuestion && d < shuffledDistractors.length; d++) {
+        rawOptions.push({
+          text: shuffledDistractors[d],
+          isCorrect: false
+        });
+      }
+    });
+
+    // Thoroughly shuffle options so answers and distractors cannot be guessed by position
+    const shuffledOptions = rawOptions.sort(() => Math.random() - 0.5);
+
+    // Distribute 12 options evenly among players
+    const optionsPerPlayer = Math.floor(shuffledOptions.length / playerCount);
+    const distributedOptions: DistributedOption[] = shuffledOptions.map((opt, idx) => {
+      const assignedPlayer = room.players[Math.min(playerCount - 1, Math.floor(idx / optionsPerPlayer))];
+      return {
+        id: `opt_${idx}`,
         text: opt.text,
         isCorrect: opt.isCorrect,
-        assignedPlayerId: assignedPlayer.id
+        targetQuestionId: opt.targetQuestionId,
+        assignedPlayerId: assignedPlayer.id,
+        isSolved: false
       };
     });
 
     room.round3 = {
-      questionNumber,
-      totalQuestions: 5,
-      prompt: qRaw.prompt,
-      options: triviaOptions,
-      startTime: Date.now()
+      startTime: Date.now(),
+      totalQuestions: totalQuestionsCount,
+      solvedCount: 0,
+      questions: distributedQuestions,
+      options: distributedOptions
     };
 
-    // If correct option is assigned to a bot, schedule bot clicking
-    const correctOption = triviaOptions.find(o => o.isCorrect);
-    if (correctOption) {
-      const bot = players.find(p => p.id === correctOption.assignedPlayerId && p.isBot);
-      if (bot) {
-        const delay = Math.floor(Math.random() * 800 + 2000);
-        const timeout = setTimeout(() => {
-          this.submitTriviaAnswer(room.code, bot.id, correctOption.id);
-        }, delay);
-        this.botTimeouts.set(`${room.code}_r3`, timeout);
-      }
-    }
+    // Schedule bot answers if bots hold correct option buttons
+    this.scheduleBotTriviaRound3(room.code);
+  }
+
+  private scheduleBotTriviaRound3(roomCode: string) {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.phase !== 'ROUND_3' || !room.round3) return;
+
+    const r3 = room.round3;
+    const botOptions = r3.options.filter(opt => {
+      if (opt.isSolved || !opt.isCorrect || !opt.targetQuestionId) return false;
+      const targetQ = r3.questions.find(q => q.id === opt.targetQuestionId);
+      if (!targetQ || targetQ.isSolved) return false;
+      const p = room.players.find(pl => pl.id === opt.assignedPlayerId);
+      return p && p.isBot;
+    });
+
+    if (botOptions.length === 0) return;
+
+    const chosenOpt = botOptions[Math.floor(Math.random() * botOptions.length)];
+    const delay = Math.floor(Math.random() * 2000 + 3500);
+
+    const timeout = setTimeout(() => {
+      this.submitTriviaAnswer(roomCode, chosenOpt.assignedPlayerId, chosenOpt.id);
+    }, delay);
+    this.botTimeouts.set(`${roomCode}_r3_bot`, timeout);
   }
 
   public submitTriviaAnswer(roomCode: string, playerId: string, optionId: string): boolean {
     const room = this.rooms.get(roomCode);
     if (!room || room.phase !== 'ROUND_3' || !room.round3) return false;
 
-    const question = room.round3;
-    const option = question.options.find(o => o.id === optionId);
+    const r3 = room.round3;
+    const option = r3.options.find(o => o.id === optionId);
     if (!option || option.assignedPlayerId !== playerId) return false;
+
+    if (option.isSolved) return true; // Already verified and solved
 
     const player = room.players.find(p => p.id === playerId);
     if (!player) return false;
 
     if (!option.isCorrect) {
       player.stats.mistakes++;
-      room.currentStability = Math.max(50, room.currentStability - 200);
+      room.currentStability = Math.max(50, room.currentStability - 150);
       this.emit(room, 'triviaError', {
-        message: `¡RESPUESTA RECHAZADA POR EL MINISTERIO! -200 Puntos.`,
-        playerName: player.name
+        message: `¡RESPUESTA RECHAZADA! "${option.text}" es errónea.`,
+        playerName: player.name,
+        optionId
       });
       this.emit(room, 'stateUpdate', room);
       return false;
     }
 
-    // Correct!
-    const elapsed = Date.now() - question.startTime;
+    // Option is correct! Find corresponding unsolved question
+    const targetQ = r3.questions.find(q => q.id === option.targetQuestionId);
+    if (!targetQ || targetQ.isSolved) return false;
+
+    targetQ.isSolved = true;
+    targetQ.solvedByPlayerName = player.name;
+    option.isSolved = true;
+    r3.solvedCount++;
+
+    const elapsed = Date.now() - r3.startTime;
     player.stats.reactionTimes.push(elapsed);
     player.stats.actionsCompleted++;
+    room.currentStability = Math.min(1000, room.currentStability + 25);
 
     this.emit(room, 'triviaSuccess', {
-      questionNumber: question.questionNumber,
-      playerName: player.name,
-      elapsedMs: elapsed
+      questionId: targetQ.id,
+      prompt: targetQ.prompt,
+      correctText: option.text,
+      solvedBy: player.name,
+      solvedCount: r3.solvedCount,
+      totalQuestions: r3.totalQuestions
     });
 
-    if (question.questionNumber < 5) {
-      this.initTriviaQuestion(room, question.questionNumber + 1);
+    if (r3.solvedCount < r3.totalQuestions) {
       this.emit(room, 'stateUpdate', room);
+      this.scheduleBotTriviaRound3(room.code);
     } else {
-      // Calculate final score for Round 3
+      // ALL QUESTIONS SOLVED! Advance to Round 4!
+      this.clearBotTimeouts(room.code);
       const round3Elapsed = Date.now() - room.roundStartTime;
-      room.round3Scores = Math.max(50, room.currentStability - Math.floor((round3Elapsed / 1000) * 30));
+      room.round3Scores = Math.max(100, room.currentStability - Math.floor((round3Elapsed / 1000) * 15));
       this.emit(room, 'roundCompleted', { round: 3, score: room.round3Scores });
       this.initRound4(room);
       this.emit(room, 'stateUpdate', room);
@@ -844,7 +927,11 @@ export class GameManager {
 
     const playerQueues: Record<string, ConveyorItem[]> = {};
     for (const player of room.players) {
-      playerQueues[player.id] = [this.generateRandomConveyorItem(stations)];
+      playerQueues[player.id] = [
+        this.generateRandomConveyorItem(stations),
+        this.generateRandomConveyorItem(stations),
+        this.generateRandomConveyorItem(stations)
+      ];
     }
 
     room.round4 = {
@@ -875,7 +962,7 @@ export class GameManager {
     }, 1000);
     this.botTimeouts.set(`${room.code}_r4_countdown`, countdownInterval as any);
 
-    // Spawning interval: every 1.5 seconds, push a new item to a random player's queue (max 4 items)
+    // Spawning interval: every 3 seconds, push 1 new item to EVERY player in the room
     const spawnInterval = setInterval(() => {
       const current = this.rooms.get(room.code);
       if (!current || current.phase !== 'ROUND_4' || !current.round4) {
@@ -883,13 +970,14 @@ export class GameManager {
         return;
       }
 
-      const randomPlayer = current.players[Math.floor(Math.random() * current.players.length)];
-      const q = current.round4.playerQueues[randomPlayer.id];
-      if (q && q.length < 4) {
-        q.push(this.generateRandomConveyorItem(current.round4.stations));
-        this.emit(current, 'stateUpdate', current);
+      for (const p of current.players) {
+        const q = current.round4.playerQueues[p.id];
+        if (q) {
+          q.push(this.generateRandomConveyorItem(current.round4.stations));
+        }
       }
-    }, 1500);
+      this.emit(current, 'stateUpdate', current);
+    }, 3000);
     this.botTimeouts.set(`${room.code}_r4_spawner`, spawnInterval as any);
 
     // Bot automation interval: every 1.4 seconds, bots inspect their front item and act
@@ -1049,11 +1137,6 @@ export class GameManager {
           direction: 'RIGHT'
         });
       }
-    }
-
-    // Always ensure the player has at least 1 item in queue so they never wait
-    if (r4.playerQueues[playerId].length === 0) {
-      r4.playerQueues[playerId].push(this.generateRandomConveyorItem(r4.stations));
     }
 
     this.emit(room, 'stateUpdate', room);

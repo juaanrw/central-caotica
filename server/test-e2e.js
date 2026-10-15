@@ -95,25 +95,26 @@ async function runTest() {
   }
   console.log('✅ Round 2 completed! Score:', currentRoom.round2Scores, 'Next phase:', currentRoom.phase);
 
-  // 6. Test Round 3: Trivia (Cultura General)
-  console.log('--- TESTING ROUND 3: LLAMADA DEL MINISTERIO (CULTURA GENERAL) ---');
+  // 6. Test Round 3: Trivia (Cultura General Distribuida)
+  console.log('--- TESTING ROUND 3: LLAMADA DEL MINISTERIO (DISTRIBUIDA) ---');
   let triviaSafety = 0;
-  while (currentRoom.phase === 'ROUND_3' && triviaSafety < 20) {
+  while (currentRoom.phase === 'ROUND_3' && triviaSafety < 25) {
     triviaSafety++;
-    const q = currentRoom.round3;
-    if (q) {
-      console.log(`Question ${q.questionNumber}/${q.totalQuestions || 5}: "${q.prompt.substring(0, 50)}..."`);
-      const correctOpt = q.options.find(o => o.isCorrect);
-      
-      if (correctOpt && correctOpt.assignedPlayerId === socket1.id) {
-        socket1.emit('submitTrivia', { roomCode: currentRoom.code, optionId: correctOpt.id });
+    const r3 = currentRoom.round3;
+    if (r3) {
+      console.log(`Round 3 Status: ${r3.solvedCount}/${r3.totalQuestions} Solved`);
+      // If socket1 holds an unsolved correct option, submit it
+      const myCorrect = r3.options.find(o => o.assignedPlayerId === socket1.id && o.isCorrect && !o.isSolved);
+      if (myCorrect) {
+        console.log(`[Host Action] Submitting answer button: "${myCorrect.text}"`);
+        socket1.emit('submitTrivia', { roomCode: currentRoom.code, optionId: myCorrect.id });
       }
     }
-    // Wait for step or bot answer
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    // Wait for state or bot answer
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  console.log('✅ Round 3 completed, phase is now:', currentRoom.phase);
+  console.log('✅ Round 3 completed, score:', currentRoom.round3Scores, 'phase is now:', currentRoom.phase);
   if (currentRoom.phase === 'ROUND_4') {
     console.log('--- TESTING ROUND 4: CINTA CLASIFICADORA (NUCLEAR CONVEYOR BELT) ---');
     const r4 = currentRoom.round4;

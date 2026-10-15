@@ -124,19 +124,42 @@ export interface Round2State {
   };
 }
 
-export interface TriviaOption {
+export type QuestionAnswerType = 
+  | 'YEAR' 
+  | 'PERSON' 
+  | 'WORK' 
+  | 'CITY' 
+  | 'COUNTRY' 
+  | 'SCIENCE' 
+  | 'NUMBER' 
+  | 'NATURE' 
+  | 'COLOR';
+
+export interface DistributedQuestion {
+  id: string;
+  type: QuestionAnswerType;
+  prompt: string;
+  correctAnswerText: string;
+  assignedPlayerId: string;
+  isSolved: boolean;
+  solvedByPlayerName?: string;
+}
+
+export interface DistributedOption {
   id: string;
   text: string;
   isCorrect: boolean;
+  targetQuestionId?: string;
   assignedPlayerId: string;
+  isSolved: boolean;
 }
 
-export interface Round3Question {
-  questionNumber: number;
-  totalQuestions: number;
-  prompt: string;
-  options: TriviaOption[];
+export interface Round3State {
   startTime: number;
+  totalQuestions: number;
+  solvedCount: number;
+  questions: DistributedQuestion[];
+  options: DistributedOption[];
 }
 
 export interface AwardInfo {
@@ -176,7 +199,7 @@ export interface RoomState {
   roundStartTime: number;
   round1?: Round1Step;
   round2?: Round2State;
-  round3?: Round3Question;
+  round3?: Round3State;
   round4?: Round4State;
   summary?: GameSummary;
   botRadioMessage?: string;

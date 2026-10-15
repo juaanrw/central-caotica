@@ -243,57 +243,84 @@ export const Round4ConveyorBelt: React.FC<Round4Props> = ({
         )}
 
         {currentItem ? (
-          <div
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            className={`w-full max-w-[320px] bg-[#1C1E24] border-4 border-black p-4 shadow-brutal transition-transform select-none cursor-grab active:cursor-grabbing ${animClass}`}
-            style={{ borderTopColor: currentItem.color }}
-          >
-            {/* Top Tag & Queue Count */}
-            <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-gray-700">
-              <span className="text-[10px] font-mono text-gray-400">
-                ELEMENTO EN CINTA
-              </span>
-              <span className="text-[10px] bg-black px-2 py-0.5 border border-gray-700 text-[#00F0FF] font-mono font-bold">
-                {myQueue.length > 1 ? `+${myQueue.length - 1} en espera` : 'Último en cinta'}
-              </span>
-            </div>
-
-            {/* Item Icon & Title */}
-            <div className="flex items-center gap-3 my-2">
+          <div className="w-full max-w-[320px] relative">
+            {/* Stack Shadow 2 (if 3+ items in pile) */}
+            {myQueue.length >= 3 && (
               <div 
-                className="w-14 h-14 shrink-0 border-3 border-black flex items-center justify-center text-black font-black"
-                style={{ backgroundColor: currentItem.color }}
-              >
-                {renderIcon(currentItem.iconName, "w-8 h-8")}
+                className="absolute inset-0 -top-3 scale-[0.93] bg-[#141518] border-3 border-gray-700/80 rounded-sm shadow-md pointer-events-none transition-all duration-200"
+                style={{
+                  borderTopColor: myQueue[2]?.color || '#444'
+                }}
+              />
+            )}
+
+            {/* Stack Shadow 1 (if 2+ items in pile) */}
+            {myQueue.length >= 2 && (
+              <div 
+                className="absolute inset-0 -top-1.5 scale-[0.97] bg-[#1A1D24] border-3 border-gray-600 rounded-sm shadow-md pointer-events-none transition-all duration-200"
+                style={{
+                  borderTopColor: myQueue[1]?.color || '#666'
+                }}
+              />
+            )}
+
+            {/* Main Active Card */}
+            <div
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              className={`relative z-10 w-full bg-[#1C1E24] border-4 border-black p-4 shadow-brutal transition-transform select-none cursor-grab active:cursor-grabbing ${animClass}`}
+              style={{ borderTopColor: currentItem.color }}
+            >
+              {/* Top Tag & Queue Count */}
+              <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-gray-700">
+                <span className="text-[10px] font-mono text-gray-400">
+                  ELEMENTO EN CINTA
+                </span>
+                <span className="text-[10px] bg-black px-2 py-0.5 border border-gray-700 text-[#00F0FF] font-mono font-bold flex items-center gap-1">
+                  <Layers className="w-3 h-3 text-[#FFD600]" />
+                  {myQueue.length > 1 ? `PILA: ${myQueue.length} (${myQueue.length - 1} en cola)` : 'Único en cinta'}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <span 
-                  className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 border border-black inline-block mb-1 text-black"
+
+              {/* Item Icon & Title */}
+              <div className="flex items-center gap-3 my-2">
+                <div 
+                  className="w-14 h-14 shrink-0 border-3 border-black flex items-center justify-center text-black font-black"
                   style={{ backgroundColor: currentItem.color }}
                 >
-                  {currentItem.categoryName}
-                </span>
-                <h3 className="text-base font-black text-white leading-tight uppercase tracking-tight truncate">
-                  {currentItem.name}
-                </h3>
+                  {renderIcon(currentItem.iconName, "w-8 h-8")}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span 
+                    className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 border border-black inline-block mb-1 text-black"
+                    style={{ backgroundColor: currentItem.color }}
+                  >
+                    {currentItem.categoryName}
+                  </span>
+                  <h3 className="text-base font-black text-white leading-tight uppercase tracking-tight truncate">
+                    {currentItem.name}
+                  </h3>
+                </div>
               </div>
-            </div>
 
-            {/* Gesture Hint */}
-            <div className="mt-3 pt-2 border-t border-dashed border-gray-700 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-              <span>◀ Desliza Izq</span>
-              <span className="text-[#00FF66] font-bold">↓ Desliza Abajo</span>
-              <span>Desliza Dch ▶</span>
+              {/* Gesture Hint */}
+              <div className="mt-3 pt-2 border-t border-dashed border-gray-700 flex items-center justify-between text-[10px] text-gray-400 font-mono">
+                <span>◀ Desliza Izq</span>
+                <span className="text-[#00FF66] font-bold">↓ Desliza Abajo</span>
+                <span>Desliza Dch ▶</span>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="p-6 bg-[#1C1E24] border-3 border-black text-center text-gray-400">
+          <div className="p-6 bg-[#1C1E24] border-3 border-black text-center text-gray-400 max-w-[320px] w-full shadow-brutal">
             <div className="animate-spin mb-2 flex justify-center text-[#FFD600]">
               <Layers className="w-8 h-8" />
             </div>
-            <p className="text-xs uppercase font-bold text-gray-300">
-              Esperando material en la cinta transportadora...
+            <p className="text-xs uppercase font-bold text-white mb-1">
+              CINTA DESPEJADA // EN ESPERA
+            </p>
+            <p className="text-[10px] text-gray-400 font-mono">
+              Esperando transferencias de tus compañeros o suministro cada 3s...
             </p>
           </div>
         )}
