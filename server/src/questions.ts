@@ -226,3 +226,119 @@ export const MANUAL_FULL_RULES = [
   "6. Si Núcleo es VERDE y Presión ≤ 45 bar ➔ Conectar únicamente ALFA",
   "*(Dicta al Técnico de Mandos qué interruptores activar y cuándo disparar AZ-5)*"
 ];
+
+export interface RawConveyorItem {
+  name: string;
+  categoryId: string;
+}
+
+export interface RawConveyorCategory {
+  id: string;
+  name: string;
+  shortName: string;
+  color: string;
+  badgeBg: string;
+  badgeText: string;
+  iconName: string;
+}
+
+export const CONVEYOR_CATEGORIES_POOL: RawConveyorCategory[] = [
+  {
+    id: 'RESIDUOS',
+    name: 'Residuos Radiactivos',
+    shortName: 'RESIDUOS',
+    color: '#FF2A2A',
+    badgeBg: 'bg-red-500/20 border-red-500 text-red-400',
+    badgeText: 'RESIDUOS',
+    iconName: 'Flame'
+  },
+  {
+    id: 'URANIO',
+    name: 'Combustible de Uranio',
+    shortName: 'URANIO',
+    color: '#FFD600',
+    badgeBg: 'bg-yellow-500/20 border-yellow-500 text-yellow-300',
+    badgeText: 'URANIO',
+    iconName: 'Atom'
+  },
+  {
+    id: 'AGUA',
+    name: 'Refrigerante y Agua Pesada',
+    shortName: 'AGUA D2O',
+    color: '#00F0FF',
+    badgeBg: 'bg-cyan-500/20 border-cyan-500 text-cyan-300',
+    badgeText: 'AGUA D2O',
+    iconName: 'Droplets'
+  },
+  {
+    id: 'BLINDAJE',
+    name: 'Blindaje y Protección',
+    shortName: 'BLINDAJE',
+    color: '#00FF66',
+    badgeBg: 'bg-green-500/20 border-green-500 text-green-300',
+    badgeText: 'BLINDAJE',
+    iconName: 'Shield'
+  },
+  {
+    id: 'BORO',
+    name: 'Barras Moderadoras de Boro',
+    shortName: 'BORO',
+    color: '#FF9900',
+    badgeBg: 'bg-orange-500/20 border-orange-500 text-orange-300',
+    badgeText: 'BORO',
+    iconName: 'Zap'
+  },
+  {
+    id: 'GASES',
+    name: 'Vapor y Gases Nobles',
+    shortName: 'GASES',
+    color: '#D946EF',
+    badgeBg: 'bg-fuchsia-500/20 border-fuchsia-500 text-fuchsia-300',
+    badgeText: 'GASES',
+    iconName: 'Wind'
+  }
+];
+
+export const CONVEYOR_ITEMS_POOL: RawConveyorItem[] = [
+  // RESIDUOS
+  { name: 'Fragmento de Grafito RBMK', categoryId: 'RESIDUOS' },
+  { name: 'Lodo Contaminado del Núcleo', categoryId: 'RESIDUOS' },
+  { name: 'Filtro Radiactivo Calcinado', categoryId: 'RESIDUOS' },
+  { name: 'Escoria de Fisión Nuclear', categoryId: 'RESIDUOS' },
+  { name: 'Vaina de Combustible Fundida', categoryId: 'RESIDUOS' },
+  
+  // URANIO
+  { name: 'Pastilla de Uranio-235', categoryId: 'URANIO' },
+  { name: 'Vial de Uranio Enriquecido', categoryId: 'URANIO' },
+  { name: 'Barra de Dióxido de Uranio', categoryId: 'URANIO' },
+  { name: 'Pastilla Cerámica UO2', categoryId: 'URANIO' },
+  { name: 'Conjunto de Combustible RBMK', categoryId: 'URANIO' },
+
+  // AGUA
+  { name: 'Contenedor de Agua Pesada D2O', categoryId: 'AGUA' },
+  { name: 'Agua Desionizada de Refrigeración', categoryId: 'AGUA' },
+  { name: 'Bomba de Bucle Primario', categoryId: 'AGUA' },
+  { name: 'Tanque Criogénico de Nitrógeno', categoryId: 'AGUA' },
+  { name: 'Refrigerante Secundario D2O', categoryId: 'AGUA' },
+
+  // BLINDAJE
+  { name: 'Placa de Plomo Densificado', categoryId: 'BLINDAJE' },
+  { name: 'Traje de Protección NRBQ', categoryId: 'BLINDAJE' },
+  { name: 'Dosímetro Militar de Bolsillo', categoryId: 'BLINDAJE' },
+  { name: 'Bloque de Hormigón Baritado', categoryId: 'BLINDAJE' },
+  { name: 'Guantes de Plomo Laminado', categoryId: 'BLINDAJE' },
+
+  // BORO
+  { name: 'Barra de Carburo de Boro', categoryId: 'BORO' },
+  { name: 'Moderador Neutrónico de Boro', categoryId: 'BORO' },
+  { name: 'Barra de Inserción AZ-5', categoryId: 'BORO' },
+  { name: 'Absorbedor de Flujo Térmico', categoryId: 'BORO' },
+  { name: 'Solución de Ácido Bórico Concentrado', categoryId: 'BORO' },
+
+  // GASES
+  { name: 'Cilindro de Gas Xenón-135', categoryId: 'GASES' },
+  { name: 'Filtro de Vapor Yodo-131', categoryId: 'GASES' },
+  { name: 'Depósito Presurizado de Helio', categoryId: 'GASES' },
+  { name: 'Válvula de Escape de Vapor', categoryId: 'GASES' },
+  { name: 'Condensador de Vapor Radiactivo', categoryId: 'GASES' }
+];

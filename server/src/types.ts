@@ -22,9 +22,50 @@ export interface Player {
   stats: PlayerStats;
 }
 
-export type GamePhase = 'LOBBY' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'SUMMARY';
+export type GamePhase = 'LOBBY' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'ROUND_4' | 'SUMMARY';
 
 export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP' | 'SHOUT';
+
+export type ConveyorDestinationId = 'LEFT_BIN' | 'PLAYER_0' | 'PLAYER_1' | 'PLAYER_2' | 'PLAYER_3' | 'RIGHT_BIN';
+
+export interface ConveyorCategory {
+  id: string;
+  name: string;
+  shortName: string;
+  color: string;
+  badgeBg: string;
+  badgeText: string;
+  iconName: string;
+}
+
+export interface ConveyorItem {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  color: string;
+  iconName: string;
+  targetDestinationId: ConveyorDestinationId;
+}
+
+export interface ConveyorStation {
+  id: ConveyorDestinationId;
+  title: string;
+  playerId?: string;
+  playerName?: string;
+  category: ConveyorCategory;
+  isBin: boolean;
+}
+
+export interface Round4State {
+  startTime: number;
+  durationSeconds: number; // 30
+  timeLeftSeconds: number;
+  totalClassified: number;
+  totalMistakes: number;
+  playerQueues: Record<string, ConveyorItem[]>;
+  stations: ConveyorStation[];
+}
 
 export interface Round1Step {
   stepNumber: number; // 1 to 6
@@ -146,11 +187,13 @@ export interface RoomState {
   round1Scores: number;
   round2Scores: number;
   round3Scores: number;
+  round4Scores: number;
   totalScore: number;
   roundStartTime: number;
   round1?: Round1Step;
   round2?: Round2State;
   round3?: Round3Question;
+  round4?: Round4State;
   summary?: GameSummary;
   botRadioMessage?: string;
 }

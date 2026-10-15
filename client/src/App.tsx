@@ -8,6 +8,7 @@ import { LobbyScreen } from './components/LobbyScreen';
 import { Round1ChainReaction } from './components/Round1ChainReaction';
 import { Round2AZ5Panel } from './components/Round2AZ5Panel';
 import { Round3MinistryCall } from './components/Round3MinistryCall';
+import { Round4ConveyorBelt } from './components/Round4ConveyorBelt';
 import { FinalReportScreen } from './components/FinalReportScreen';
 
 export const App: React.FC = () => {
@@ -151,6 +152,12 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleConveyorAction = (action: 'PASS_LEFT' | 'PASS_RIGHT' | 'CLAIM') => {
+    if (room) {
+      socket.emit('conveyorAction', { roomCode: room.code, action });
+    }
+  };
+
   const handleRestartGame = () => {
     if (room) {
       socket.emit('restartGame', { roomCode: room.code });
@@ -210,6 +217,14 @@ export const App: React.FC = () => {
             room={room}
             currentSocketId={socketId}
             onSubmitAnswer={handleSubmitTrivia}
+          />
+        )}
+
+        {room && room.phase === 'ROUND_4' && (
+          <Round4ConveyorBelt
+            room={room}
+            currentSocketId={socketId}
+            onConveyorAction={handleConveyorAction}
           />
         )}
 

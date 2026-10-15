@@ -114,10 +114,44 @@ async function runTest() {
   }
 
   console.log('✅ Round 3 completed, phase is now:', currentRoom.phase);
+  if (currentRoom.phase === 'ROUND_4') {
+    console.log('--- TESTING ROUND 4: CINTA CLASIFICADORA (NUCLEAR CONVEYOR BELT) ---');
+    const r4 = currentRoom.round4;
+    console.log(`Duration: ${r4.durationSeconds}s, Time Left: ${r4.timeLeftSeconds}s`);
+    console.log('Stations:', r4.stations.map(s => `[${s.id}: ${s.playerName || s.title} -> ${s.category.name}]`));
+
+    // Simulate active player sorting items for several rounds
+    let r4Safety = 0;
+    while (currentRoom.phase === 'ROUND_4' && r4Safety < 35) {
+      r4Safety++;
+      const currentR4 = currentRoom.round4;
+      if (currentR4) {
+        const myQueue = currentR4.playerQueues[socket1.id] || [];
+        if (myQueue.length > 0) {
+          const item = myQueue[0];
+          const myIndex = currentR4.stations.findIndex(s => s.playerId === socket1.id);
+          const targetIndex = currentR4.stations.findIndex(s => s.id === item.targetDestinationId);
+
+          let action = 'CLAIM';
+          if (targetIndex < myIndex) {
+            action = 'PASS_LEFT';
+          } else if (targetIndex > myIndex) {
+            action = 'PASS_RIGHT';
+          }
+
+          console.log(`[R4 Action] Item: "${item.name}" (${item.categoryName}) -> Action: ${action}`);
+          socket1.emit('conveyorAction', { roomCode: currentRoom.code, action });
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 900));
+    }
+    console.log('✅ Round 4 finished! Classified:', currentRoom.round4?.totalClassified, 'Mistakes:', currentRoom.round4?.totalMistakes);
+  }
+
   console.log('--- SUMMARY RESULTS ---');
-  console.log('Total Score:', currentRoom.summary.totalScore);
-  console.log('Rank:', currentRoom.summary.rankTitle);
-  console.log('Awards:', currentRoom.summary.awards.map(a => `${a.icon} ${a.title} -> ${a.playerName}`));
+  console.log('Total Score:', currentRoom.summary?.totalScore);
+  console.log('Rank:', currentRoom.summary?.rankTitle);
+  console.log('Awards:', currentRoom.summary?.awards.map(a => `${a.icon} ${a.title} -> ${a.playerName}`));
 
   // 7. Test Restart
   socket1.emit('restartGame', { roomCode: currentRoom.code });

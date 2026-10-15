@@ -111,7 +111,12 @@ io.on('connection', (socket: Socket) => {
     gameManager.submitTriviaAnswer(roomCode, socket.id, optionId);
   });
 
-  // 10. Restart Game
+  // 10. Round 4: Conveyor Belt Action
+  socket.on('conveyorAction', ({ roomCode, action }: { roomCode: string; action: 'PASS_LEFT' | 'PASS_RIGHT' | 'CLAIM' }) => {
+    gameManager.handleConveyorAction(roomCode, socket.id, action);
+  });
+
+  // 11. Restart Game
   socket.on('restartGame', ({ roomCode }: { roomCode: string }) => {
     const room = gameManager.restartGame(roomCode);
     if (room) {

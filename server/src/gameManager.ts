@@ -5,6 +5,11 @@ import {
   Round1Step, 
   Round2State, 
   AZ5Console,
+  Round4State,
+  ConveyorItem,
+  ConveyorStation,
+  ConveyorCategory,
+  ConveyorDestinationId,
   TriviaOption,
   AwardInfo
 } from './types';
@@ -14,6 +19,8 @@ import {
   MANUAL_PART_A_RULES, 
   MANUAL_PART_B_RULES, 
   MANUAL_FULL_RULES,
+  CONVEYOR_CATEGORIES_POOL,
+  CONVEYOR_ITEMS_POOL,
   TriviaQuestionRaw
 } from './questions';
 
@@ -81,6 +88,7 @@ export class GameManager {
       round1Scores: 0,
       round2Scores: 0,
       round3Scores: 0,
+      round4Scores: 0,
       totalScore: 0,
       roundStartTime: Date.now()
     };
@@ -199,9 +207,11 @@ export class GameManager {
     room.round1Scores = 0;
     room.round2Scores = 0;
     room.round3Scores = 0;
+    room.round4Scores = 0;
     room.totalScore = 0;
     room.roundStartTime = Date.now();
     room.botRadioMessage = undefined;
+    room.round4 = undefined;
 
     // Reset player stats
     for (const p of room.players) {
@@ -701,17 +711,368 @@ export class GameManager {
       this.initTriviaQuestion(room, question.questionNumber + 1);
       this.emit(room, 'stateUpdate', room);
     } else {
-      // Calculate final score
+      // Calculate final score for Round 3
       const round3Elapsed = Date.now() - room.roundStartTime;
       room.round3Scores = Math.max(50, room.currentStability - Math.floor((round3Elapsed / 1000) * 30));
-      room.totalScore = room.round1Scores + room.round2Scores + room.round3Scores;
-
-      this.generateSummary(room);
-      this.emit(room, 'gameCompleted', room.summary);
+      this.emit(room, 'roundCompleted', { round: 3, score: room.round3Scores });
+      this.initRound4(room);
       this.emit(room, 'stateUpdate', room);
     }
 
     return true;
+  }
+
+  // --- ROUND 4: CINTA CLASIFICADORA (CONVEYOR BELT CHAOS - 30 SEGUNDOS) ---
+
+  private generateRandomConveyorItem(destinations: ConveyorStation[]): ConveyorItem {
+    const targetStation = destinations[Math.floor(Math.random() * destinations.length)];
+    const cat = targetStation.category;
+    const matchingPool = CONVEYOR_ITEMS_POOL.filter(i => i.categoryId === cat.id);
+    const template = matchingPool[Math.floor(Math.random() * matchingPool.length)] || {
+      name: `Material ${cat.shortName}`,
+      categoryId: cat.id
+    };
+
+    return {
+      id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      name: template.name,
+      categoryId: cat.id,
+      categoryName: cat.name,
+      color: cat.color,
+      iconName: cat.iconName,
+      targetDestinationId: targetStation.id
+    };
+  }
+
+  private initRound4(room: RoomState) {
+    this.clearBotTimeouts(room.code);
+    room.phase = 'ROUND_4';
+    room.currentStability = 1000;
+    room.roundStartTime = Date.now();
+    room.botRadioMessage = undefined;
+
+    const count = room.players.length;
+    const stations: ConveyorStation[] = [];
+
+    // Left Bin: Always RESIDUOS
+    const catResiduos = CONVEYOR_CATEGORIES_POOL.find(c => c.id === 'RESIDUOS')!;
+    stations.push({
+      id: 'LEFT_BIN',
+      title: 'CONTENEDOR IZQ // RESIDUOS',
+      category: { ...catResiduos },
+      isBin: true
+    });
+
+    // Player 0: URANIO
+    const catUranio = CONVEYOR_CATEGORIES_POOL.find(c => c.id === 'URANIO')!;
+    stations.push({
+      id: 'PLAYER_0',
+      title: `PUESTO 1: ${room.players[0].name}`,
+      playerId: room.players[0].id,
+      playerName: room.players[0].name,
+      category: { ...catUranio },
+      isBin: false
+    });
+
+    // Player 1: AGUA
+    const catAgua = CONVEYOR_CATEGORIES_POOL.find(c => c.id === 'AGUA')!;
+    stations.push({
+      id: 'PLAYER_1',
+      title: `PUESTO 2: ${room.players[1].name}`,
+      playerId: room.players[1].id,
+      playerName: room.players[1].name,
+      category: { ...catAgua },
+      isBin: false
+    });
+
+    if (count === 2) {
+      // Right Bin: BLINDAJE
+      const catBlindaje = CONVEYOR_CATEGORIES_POOL.find(c => c.id === 'BLINDAJE')!;
+      stations.push({
+        id: 'RIGHT_BIN',
+        title: 'CONTENEDOR DCH // BLINDAJE',
+        category: { ...catBlindaje },
+        isBin: true
+      });
+    } else if (count === 3) {
+      // Player 2: BLINDAJE
+      const catBlindaje = CONVEYOR_CATEGORIES_POOL.find(c => c.id === 'BLINDAJE')!;
+      stations.push({
+        id: 'PLAYER_2',
+        title: `PUESTO 3: ${room.players[2].name}`,
+        playerId: room.players[2].id,
+        playerName: room.players[2].name,
+        category: { ...catBlindaje },
+        isBin: false
+      });
+      // Right Bin: GASES
+      const catGases = CONVEYOR_CATEGORIES_POOL.find(c => c.id === 'GASES')!;
+      stations.push({
+        id: 'RIGHT_BIN',
+        title: 'CONTENEDOR DCH // VAPOR Y GASES',
+        category: { ...catGases },
+        isBin: true
+      });
+    } else {
+      // 4 players
+      const catBlindaje = CONVEYOR_CATEGORIES_POOL.find(c => c.id === 'BLINDAJE')!;
+      stations.push({
+        id: 'PLAYER_2',
+        title: `PUESTO 3: ${room.players[2].name}`,
+        playerId: room.players[2].id,
+        playerName: room.players[2].name,
+        category: { ...catBlindaje },
+        isBin: false
+      });
+      const catBoro = CONVEYOR_CATEGORIES_POOL.find(c => c.id === 'BORO')!;
+      stations.push({
+        id: 'PLAYER_3',
+        title: `PUESTO 4: ${room.players[3].name}`,
+        playerId: room.players[3].id,
+        playerName: room.players[3].name,
+        category: { ...catBoro },
+        isBin: false
+      });
+      const catGases = CONVEYOR_CATEGORIES_POOL.find(c => c.id === 'GASES')!;
+      stations.push({
+        id: 'RIGHT_BIN',
+        title: 'CONTENEDOR DCH // VAPOR Y GASES',
+        category: { ...catGases },
+        isBin: true
+      });
+    }
+
+    const playerQueues: Record<string, ConveyorItem[]> = {};
+    for (const player of room.players) {
+      playerQueues[player.id] = [this.generateRandomConveyorItem(stations)];
+    }
+
+    room.round4 = {
+      startTime: Date.now(),
+      durationSeconds: 30,
+      timeLeftSeconds: 30,
+      totalClassified: 0,
+      totalMistakes: 0,
+      playerQueues,
+      stations
+    };
+
+    // 1-second countdown ticker
+    const countdownInterval = setInterval(() => {
+      const current = this.rooms.get(room.code);
+      if (!current || current.phase !== 'ROUND_4' || !current.round4) {
+        clearInterval(countdownInterval);
+        return;
+      }
+
+      current.round4.timeLeftSeconds--;
+      if (current.round4.timeLeftSeconds <= 0) {
+        clearInterval(countdownInterval);
+        this.finishRound4(current);
+      } else {
+        this.emit(current, 'conveyorTick', { timeLeft: current.round4.timeLeftSeconds });
+      }
+    }, 1000);
+    this.botTimeouts.set(`${room.code}_r4_countdown`, countdownInterval as any);
+
+    // Spawning interval: every 1.5 seconds, push a new item to a random player's queue (max 4 items)
+    const spawnInterval = setInterval(() => {
+      const current = this.rooms.get(room.code);
+      if (!current || current.phase !== 'ROUND_4' || !current.round4) {
+        clearInterval(spawnInterval);
+        return;
+      }
+
+      const randomPlayer = current.players[Math.floor(Math.random() * current.players.length)];
+      const q = current.round4.playerQueues[randomPlayer.id];
+      if (q && q.length < 4) {
+        q.push(this.generateRandomConveyorItem(current.round4.stations));
+        this.emit(current, 'stateUpdate', current);
+      }
+    }, 1500);
+    this.botTimeouts.set(`${room.code}_r4_spawner`, spawnInterval as any);
+
+    // Bot automation interval: every 1.4 seconds, bots inspect their front item and act
+    const botInterval = setInterval(() => {
+      const current = this.rooms.get(room.code);
+      if (!current || current.phase !== 'ROUND_4' || !current.round4) {
+        clearInterval(botInterval);
+        return;
+      }
+
+      for (let i = 0; i < current.players.length; i++) {
+        const p = current.players[i];
+        if (p.isBot) {
+          const q = current.round4.playerQueues[p.id];
+          if (q && q.length > 0) {
+            const item = q[0];
+            const myStationId = `PLAYER_${i}`;
+            let chosenAction: 'PASS_LEFT' | 'PASS_RIGHT' | 'CLAIM' = 'CLAIM';
+
+            if (item.targetDestinationId === myStationId) {
+              chosenAction = 'CLAIM';
+            } else if (item.targetDestinationId === 'LEFT_BIN') {
+              chosenAction = 'PASS_LEFT';
+            } else if (item.targetDestinationId === 'RIGHT_BIN') {
+              chosenAction = 'PASS_RIGHT';
+            } else if (item.targetDestinationId.startsWith('PLAYER_')) {
+              const targetIdx = parseInt(item.targetDestinationId.split('_')[1], 10);
+              if (targetIdx < i) {
+                chosenAction = 'PASS_LEFT';
+              } else if (targetIdx > i) {
+                chosenAction = 'PASS_RIGHT';
+              } else {
+                chosenAction = 'CLAIM';
+              }
+            }
+
+            if (Math.random() < 0.12) {
+              const acts: ('PASS_LEFT' | 'PASS_RIGHT' | 'CLAIM')[] = ['PASS_LEFT', 'PASS_RIGHT', 'CLAIM'];
+              const wrongActs = acts.filter(a => a !== chosenAction);
+              chosenAction = wrongActs[Math.floor(Math.random() * wrongActs.length)];
+            }
+
+            this.handleConveyorAction(current.code, p.id, chosenAction);
+          }
+        }
+      }
+    }, 1400);
+    this.botTimeouts.set(`${room.code}_r4_bots`, botInterval as any);
+  }
+
+  public handleConveyorAction(roomCode: string, playerId: string, action: 'PASS_LEFT' | 'PASS_RIGHT' | 'CLAIM'): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.phase !== 'ROUND_4' || !room.round4) return false;
+
+    const r4 = room.round4;
+    const player = room.players.find(p => p.id === playerId);
+    if (!player) return false;
+
+    const playerIndex = room.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return false;
+
+    const queue = r4.playerQueues[playerId];
+    if (!queue || queue.length === 0) return false;
+
+    const item = queue.shift()!;
+    const myStationId = `PLAYER_${playerIndex}` as ConveyorDestinationId;
+
+    if (action === 'CLAIM') {
+      if (item.targetDestinationId === myStationId) {
+        r4.totalClassified++;
+        player.stats.actionsCompleted++;
+        room.currentStability = Math.min(1000, room.currentStability + 40);
+        this.emit(room, 'conveyorSuccess', {
+          playerId,
+          playerName: player.name,
+          itemName: item.name,
+          action: 'CLAIM'
+        });
+      } else {
+        r4.totalMistakes++;
+        player.stats.mistakes++;
+        room.currentStability = Math.max(50, room.currentStability - 30);
+        this.emit(room, 'conveyorError', {
+          playerId,
+          playerName: player.name,
+          itemName: item.name,
+          message: `¡${player.name} almacenó ${item.name} por error!`
+        });
+      }
+    } else if (action === 'PASS_LEFT') {
+      if (playerIndex === 0) {
+        // Exits to LEFT_BIN
+        if (item.targetDestinationId === 'LEFT_BIN') {
+          r4.totalClassified++;
+          player.stats.actionsCompleted++;
+          room.currentStability = Math.min(1000, room.currentStability + 40);
+          this.emit(room, 'conveyorSuccess', {
+            playerId,
+            playerName: player.name,
+            itemName: item.name,
+            action: 'LEFT_BIN'
+          });
+        } else {
+          r4.totalMistakes++;
+          player.stats.mistakes++;
+          room.currentStability = Math.max(50, room.currentStability - 30);
+          this.emit(room, 'conveyorError', {
+            playerId,
+            playerName: player.name,
+            itemName: item.name,
+            message: `¡${item.name} arrojado al Contenedor Izquierdo por error!`
+          });
+        }
+      } else {
+        const leftPlayer = room.players[playerIndex - 1];
+        if (!r4.playerQueues[leftPlayer.id]) r4.playerQueues[leftPlayer.id] = [];
+        r4.playerQueues[leftPlayer.id].push(item);
+        this.emit(room, 'conveyorTransfer', {
+          fromPlayerId: playerId,
+          toPlayerId: leftPlayer.id,
+          itemName: item.name,
+          direction: 'LEFT'
+        });
+      }
+    } else if (action === 'PASS_RIGHT') {
+      if (playerIndex === room.players.length - 1) {
+        // Exits to RIGHT_BIN
+        if (item.targetDestinationId === 'RIGHT_BIN') {
+          r4.totalClassified++;
+          player.stats.actionsCompleted++;
+          room.currentStability = Math.min(1000, room.currentStability + 40);
+          this.emit(room, 'conveyorSuccess', {
+            playerId,
+            playerName: player.name,
+            itemName: item.name,
+            action: 'RIGHT_BIN'
+          });
+        } else {
+          r4.totalMistakes++;
+          player.stats.mistakes++;
+          room.currentStability = Math.max(50, room.currentStability - 30);
+          this.emit(room, 'conveyorError', {
+            playerId,
+            playerName: player.name,
+            itemName: item.name,
+            message: `¡${item.name} arrojado al Contenedor Derecho por error!`
+          });
+        }
+      } else {
+        const rightPlayer = room.players[playerIndex + 1];
+        if (!r4.playerQueues[rightPlayer.id]) r4.playerQueues[rightPlayer.id] = [];
+        r4.playerQueues[rightPlayer.id].push(item);
+        this.emit(room, 'conveyorTransfer', {
+          fromPlayerId: playerId,
+          toPlayerId: rightPlayer.id,
+          itemName: item.name,
+          direction: 'RIGHT'
+        });
+      }
+    }
+
+    // Always ensure the player has at least 1 item in queue so they never wait
+    if (r4.playerQueues[playerId].length === 0) {
+      r4.playerQueues[playerId].push(this.generateRandomConveyorItem(r4.stations));
+    }
+
+    this.emit(room, 'stateUpdate', room);
+    return true;
+  }
+
+  private finishRound4(room: RoomState) {
+    this.clearBotTimeouts(room.code);
+    if (!room.round4) return;
+
+    const r4 = room.round4;
+    const rawScore = 300 + (r4.totalClassified * 40) - (r4.totalMistakes * 25);
+    room.round4Scores = Math.max(100, Math.min(1000, rawScore));
+    room.totalScore = room.round1Scores + room.round2Scores + room.round3Scores + room.round4Scores;
+
+    this.emit(room, 'roundCompleted', { round: 4, score: room.round4Scores });
+    this.generateSummary(room);
+    this.emit(room, 'gameCompleted', room.summary);
+    this.emit(room, 'stateUpdate', room);
   }
 
   // --- SUMMARY & SARCASTIC VIRAL AWARDS ---
@@ -725,15 +1086,15 @@ export class GameManager {
     let rankSubtitle = '';
     let rankBadge = '🎖️';
 
-    if (total >= 2200) {
+    if (total >= 3000) {
       rankBadge = '🎖️';
       rankTitle = 'HÉROES DE LA UNIÓN SOVIÉTICA';
       rankSubtitle = '¡El reactor no estalló! Lenin en persona os concedería la Orden de la Bandera Roja. Recibiréis ración doble de té.';
-    } else if (total >= 1600) {
+    } else if (total >= 2200) {
       rankBadge = '⚠️';
       rankTitle = 'OPERARIOS ACEPTABLES (3.6 ROENTGEN)';
       rankSubtitle = 'Ni genial, ni terrible. El núcleo tiene una pequeña fisura humeante, pero el informe oficial dirá que fue un éxito.';
-    } else if (total >= 900) {
+    } else if (total >= 1400) {
       rankBadge = '📉';
       rankTitle = 'OPERARIOS MEDIOCRES';
       rankSubtitle = 'La sala de turbinas se inundó con agua hirviendo. Mañana a primera hora todos los turnos serán reasignados a Siberia.';
