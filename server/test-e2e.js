@@ -14,7 +14,7 @@ async function runTest() {
   });
 
   // 1. Create Room
-  socket1.emit('createRoom', { hostName: 'Host Dyatlov', hasMic: true });
+  socket1.emit('createRoom', { hostName: 'Host Dyatlov' });
   await new Promise((resolve) => socket1.once('roomCreated', (r) => {
     currentRoom = r;
     console.log('✅ Room created with code:', r.code);

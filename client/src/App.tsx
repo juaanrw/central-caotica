@@ -114,12 +114,12 @@ export const App: React.FC = () => {
   }, []);
 
   // Handlers
-  const handleCreateRoom = (hasMic: boolean) => {
-    socket.emit('createRoom', { hostName: playerName, hasMic });
+  const handleCreateRoom = () => {
+    socket.emit('createRoom', { hostName: playerName });
   };
 
-  const handleJoinRoom = (code: string, hasMic: boolean) => {
-    socket.emit('joinRoom', { code, playerName, hasMic });
+  const handleJoinRoom = (code: string) => {
+    socket.emit('joinRoom', { code, playerName });
   };
 
   const handleAddBot = () => {

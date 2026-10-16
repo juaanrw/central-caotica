@@ -33,16 +33,16 @@ io.on('connection', (socket: Socket) => {
   console.log(`[CONEXIÓN] Operario conectado: ${socket.id}`);
 
   // 1. Create Room
-  socket.on('createRoom', ({ hostName, hasMic }: { hostName: string; hasMic?: boolean }) => {
-    const room = gameManager.createRoom(hostName, socket.id, !!hasMic);
+  socket.on('createRoom', ({ hostName }: { hostName: string }) => {
+    const room = gameManager.createRoom(hostName, socket.id);
     socket.join(room.code);
     socket.emit('roomCreated', room);
-    console.log(`[SALA CREADA] Código: ${room.code} por ${hostName} (Mic: ${!!hasMic})`);
+    console.log(`[SALA CREADA] Código: ${room.code} por ${hostName}`);
   });
 
   // 2. Join Room
-  socket.on('joinRoom', ({ code, playerName, hasMic }: { code: string; playerName: string; hasMic?: boolean }) => {
-    const result = gameManager.joinRoom(code, playerName, socket.id, !!hasMic);
+  socket.on('joinRoom', ({ code, playerName }: { code: string; playerName: string }) => {
+    const result = gameManager.joinRoom(code, playerName, socket.id);
     if (result.error || !result.room) {
       socket.emit('joinError', { message: result.error });
       return;
@@ -52,15 +52,7 @@ io.on('connection', (socket: Socket) => {
     socket.join(room.code);
     socket.emit('roomJoined', room);
     io.to(room.code).emit('stateUpdate', room);
-    console.log(`[OPERARIO UNIDO] ${playerName} a sala ${room.code} (Mic: ${!!hasMic})`);
-  });
-
-  // Update Mic Status
-  socket.on('setMicStatus', ({ hasMic }: { hasMic: boolean }) => {
-    const room = gameManager.setPlayerMic(socket.id, hasMic);
-    if (room) {
-      io.to(room.code).emit('stateUpdate', room);
-    }
+    console.log(`[OPERARIO UNIDO] ${playerName} a sala ${room.code}`);
   });
 
   // 3. Add simulated bot

@@ -17,14 +17,13 @@ export interface Player {
   name: string;
   isHost: boolean;
   isBot?: boolean;
-  hasMic?: boolean;
   role?: PlayerRole;
   stats: PlayerStats;
 }
 
 export type GamePhase = 'LOBBY' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'ROUND_4' | 'ROUND_5' | 'SUMMARY';
 
-export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP' | 'SHOUT';
+export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP';
 
 export type MazeRole =
   | 'CARTOGRAFO_TOTAL'

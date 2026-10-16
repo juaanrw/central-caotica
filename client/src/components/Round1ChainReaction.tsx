@@ -4,7 +4,6 @@ import {
   RotateCw, 
   Flame, 
   Sliders, 
-  Mic, 
   Volume2
 } from 'lucide-react';
 import { RoomState, ActionType } from '../types';
@@ -31,21 +30,9 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
   const [valveProgress, setValveProgress] = useState(0);
   const [sliderValue, setSliderValue] = useState(0);
   const [pumpCount, setPumpCount] = useState(0);
-  const [micVolume, setMicVolume] = useState(0);
-  const [micActive, setMicActive] = useState(false);
   const [lastActionFeedback, setLastActionFeedback] = useState<string | null>(null);
 
   const valveTimerRef = useRef<any>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
-  const animFrameRef = useRef<number | null>(null);
-  const shoutFramesRef = useRef<number>(0);
-  const shoutTriggeredRef = useRef<boolean>(false);
-
-  // Keep a ref to the latest step to prevent stale closures inside requestAnimationFrame
-  const stepRef = useRef(step);
-  stepRef.current = step;
 
   // Reset controls state on new step
   useEffect(() => {
@@ -53,107 +40,8 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
     setValveProgress(0);
     setSliderValue(0);
     setPumpCount(0);
-    shoutFramesRef.current = 0;
-    shoutTriggeredRef.current = false;
     sound.playGeiger(2);
   }, [step.stepNumber]);
-
-  // --- SENSOR ACÚSTICO: MICRÓFONO (GRITAR / VOLUMEN) ---
-  const startMicListener = async () => {
-    try {
-      sound.playClick();
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      micStreamRef.current = stream;
-
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioCtx();
-      audioContextRef.current = ctx;
-
-      const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-
-      setMicActive(true);
-
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
-      const checkVolume = () => {
-        if (!analyserRef.current) return;
-        analyserRef.current.getByteFrequencyData(dataArray);
-
-        let maxVal = 0;
-        let sumSquares = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          const val = dataArray[i];
-          if (val > maxVal) maxVal = val;
-          sumSquares += val * val;
-        }
-
-        // Peak volume from 0 to 100%
-        const peakPercent = Math.min(100, Math.round((maxVal / 255) * 100));
-        const rms = Math.sqrt(sumSquares / bufferLength);
-        const rmsPercent = Math.min(100, Math.round((rms / 255) * 100));
-        setMicVolume(peakPercent);
-
-        const currentStep = stepRef.current;
-        const isMyTurnToShout = currentStep.executorId === currentSocketId && currentStep.targetAction === 'SHOUT';
-
-        // STRICT SHOUT DETECTION:
-        // 1. MUST be this player's turn to execute a SHOUT
-        // 2. Volume must be high (peak >= 85% AND rms >= 40%) - requires an actual loud shout
-        // 3. Must be sustained for at least 3 animation frames to avoid instant audio pops
-        if (isMyTurnToShout && peakPercent >= 85 && rmsPercent >= 40) {
-          shoutFramesRef.current++;
-          if (shoutFramesRef.current >= 3 && !shoutTriggeredRef.current) {
-            shoutTriggeredRef.current = true;
-            shoutFramesRef.current = 0;
-            sound.playSuccess();
-            triggerAction('SHOUT');
-          }
-        } else {
-          shoutFramesRef.current = 0;
-        }
-
-        animFrameRef.current = requestAnimationFrame(checkVolume);
-      };
-
-      animFrameRef.current = requestAnimationFrame(checkVolume);
-    } catch (err) {
-      console.warn('Microphone permission not granted or unavailable:', err);
-      setMicActive(false);
-    }
-  };
-
-  // Attempt to auto-start mic if player accepted microphone permission
-  useEffect(() => {
-    const me = room.players.find(p => p.id === currentSocketId);
-    if (me?.hasMic && !micActive) {
-      startMicListener();
-    }
-  }, [room.players, currentSocketId]);
-
-  // Cleanup mic on unmount
-  useEffect(() => {
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      if (micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach(track => track.stop());
-      }
-      if (audioContextRef.current) {
-        try { audioContextRef.current.close(); } catch (e) {}
-      }
-    };
-  }, []);
-
-  const handleManualShout = () => {
-    sound.playClick();
-    setMicVolume(100);
-    setTimeout(() => setMicVolume(0), 400);
-    triggerAction('SHOUT');
-  };
 
   // --- CONTROLES CLÁSICOS ---
 
@@ -351,40 +239,6 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
               {[1, 2, 3, 4, 5].map((p) => (
                 <div key={p} className={`w-2.5 h-1.5 border border-black ${pumpCount >= p ? 'bg-[#FFD600]' : 'bg-black'}`} />
               ))}
-            </div>
-          </div>
-        </div>
-
-        {/* 5. Sensor Acústico */}
-        <div className="bg-[#1C1E24] border-3 border-black p-2.5 shadow-brutal flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className={`p-2 border-2 border-black rounded ${micActive ? 'bg-[#00FF66] text-black' : 'bg-[#2A2D37] text-gray-400'}`}>
-              <Mic className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[10px] font-black uppercase text-gray-200">
-                5. SENSOR ACÚSTICO
-              </div>
-              <div className="text-[9px] text-gray-400 font-mono">
-                {micActive ? 'GRITAR FUERTE (UMBRAL: 85%)' : 'MODO BOTÓN DIRECTO'}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleManualShout}
-              className="py-1 px-3 bg-[#FF2A2A] hover:bg-red-600 active:scale-95 text-white font-black text-xs uppercase border-2 border-black shadow-brutal-sm transition-all"
-            >
-              ACTIVAR
-            </button>
-            <div className="w-16 bg-black h-3 border border-gray-700 relative overflow-hidden" title="Nivel de voz (Supera la línea blanca para activar)">
-              <div
-                className={`h-full transition-all ${micVolume >= 85 ? 'bg-[#FF2A2A]' : micVolume > 50 ? 'bg-[#FFD600]' : 'bg-[#00FF66]'}`}
-                style={{ width: `${micVolume}%` }}
-              />
-              {/* White vertical line showing 85% shout threshold */}
-              <div className="absolute top-0 bottom-0 left-[85%] w-0.5 bg-white/80 z-10" />
             </div>
           </div>
         </div>
