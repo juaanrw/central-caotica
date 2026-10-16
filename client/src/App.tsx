@@ -140,6 +140,12 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleStartSpecificRound = (roundNumber: 1 | 2 | 3 | 4 | 5) => {
+    if (room) {
+      socket.emit('startSpecificRound', { roomCode: room.code, roundNumber, singleRound: true });
+    }
+  };
+
   const handleRound1Action = (action: ActionType) => {
     if (room) {
       socket.emit('round1Action', { roomCode: room.code, action });
@@ -188,7 +194,12 @@ export const App: React.FC = () => {
       <div className="absolute inset-0 crt-scanlines z-20 pointer-events-none" />
 
       {/* Main Header */}
-      <Header room={room} playerName={playerName} />
+      <Header
+        room={room}
+        playerName={playerName}
+        onStartSpecificRound={handleStartSpecificRound}
+        onReturnToLobby={handleRestartGame}
+      />
 
       {/* Body screens */}
       <main className="flex-1 min-h-0 flex flex-col overflow-hidden relative z-10">
@@ -210,6 +221,7 @@ export const App: React.FC = () => {
             onAddBot={handleAddBot}
             onRemoveBot={handleRemoveBot}
             onStartGame={handleStartGame}
+            onStartSpecificRound={handleStartSpecificRound}
           />
         )}
 

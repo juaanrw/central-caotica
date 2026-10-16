@@ -252,4 +252,5 @@ export interface RoomState {
   round5?: Round5State;
   summary?: GameSummary;
   botRadioMessage?: string;
+  singleRoundMode?: boolean;
 }

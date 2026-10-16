@@ -54,7 +54,7 @@ export const FinalReportScreen: React.FC<FinalReportProps> = ({
         <div className="flex justify-between items-center text-xs text-gray-400 font-bold mb-1 border-b border-gray-700 pb-1">
           <span>PUNTUACIÓN TOTAL DEL TURNO</span>
           <span className="text-[#00FF66] font-mono text-sm font-black">
-            {summary.totalScore} / 5000 PTS
+            {summary.totalScore} / {room.singleRoundMode ? 1000 : 5000} PTS
           </span>
         </div>
         <div className="grid grid-cols-5 gap-1 text-[9px] font-mono text-gray-300 py-1 border-b border-gray-700/60 text-center">

@@ -6,9 +6,16 @@ import { sound } from '../soundEngine';
 interface HeaderProps {
   room: RoomState | null;
   playerName: string;
+  onStartSpecificRound?: (roundNumber: 1 | 2 | 3 | 4 | 5) => void;
+  onReturnToLobby?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ room, playerName }) => {
+export const Header: React.FC<HeaderProps> = ({
+  room,
+  playerName,
+  onStartSpecificRound,
+  onReturnToLobby
+}) => {
   const [isMuted, setIsMuted] = useState(sound.getMuted());
   const [elapsed, setElapsed] = useState(0);
 
@@ -42,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({ room, playerName }) => {
     stability > 600 ? 'bg-[#00FF66]' : stability > 300 ? 'bg-[#FFD600]' : 'bg-[#FF2A2A]';
 
   return (
-    <header className="w-full bg-[#1C1E24] border-b-4 border-black px-3 py-2 flex flex-col gap-1.5 shrink-0 z-30 shadow-brutal select-none">
+    <header className="w-full bg-[#1C1E24] border-b-4 border-black px-3 py-1.5 flex flex-col gap-1 shrink-0 z-30 shadow-brutal select-none">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="bg-[#FFD600] text-black p-1 rounded-sm border-2 border-black flex items-center justify-center animate-pulse-fast">
@@ -83,6 +90,44 @@ export const Header: React.FC<HeaderProps> = ({ room, playerName }) => {
         </div>
       </div>
 
+      {/* Quick Minigame Switcher Bar during active game or summary */}
+      {room && room.phase !== 'LOBBY' && onStartSpecificRound && onReturnToLobby && (
+        <div className="flex items-center justify-between gap-1 bg-black/70 border border-gray-700 px-1.5 py-1 rounded">
+          <button
+            onClick={() => {
+              sound.playClick();
+              onReturnToLobby();
+            }}
+            className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-[#2A2D37] hover:bg-[#3F4452] text-gray-200 border border-gray-600 rounded"
+            title="Volver a la Sala de Control"
+          >
+            ⬅ SALA
+          </button>
+          <div className="flex items-center gap-1">
+            {([1, 2, 3, 4, 5] as const).map((rNum) => {
+              const isCurrent = room.phase === `ROUND_${rNum}`;
+              return (
+                <button
+                  key={rNum}
+                  onClick={() => {
+                    sound.playClick();
+                    onStartSpecificRound(rNum);
+                  }}
+                  className={`text-[9px] font-black uppercase px-1.5 py-0.5 border rounded transition-all ${
+                    isCurrent
+                      ? 'bg-[#FFD600] text-black border-black'
+                      : 'bg-[#1C1E24] text-gray-300 border-gray-700 hover:border-[#00F0FF]'
+                  }`}
+                  title={`Saltar directamente a la Prueba ${rNum}`}
+                >
+                  P{rNum}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Stability Bar during game */}
       {room && room.phase !== 'LOBBY' && room.phase !== 'SUMMARY' && (
         <div className="w-full bg-black/80 border-2 border-black p-1 rounded">
@@ -94,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({ room, playerName }) => {
               {stability} PTS ({stabilityPercent}%)
             </span>
           </div>
-          <div className="w-full h-2.5 bg-gray-900 border border-gray-700 overflow-hidden relative">
+          <div className="w-full h-2 bg-gray-900 border border-gray-700 overflow-hidden relative">
             <div
               className={`h-full transition-all duration-300 ${stabilityColor}`}
               style={{ width: `${stabilityPercent}%` }}

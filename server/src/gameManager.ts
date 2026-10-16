@@ -207,10 +207,15 @@ export class GameManager {
   // --- GAME START & ROUND 1: REACCIÓN EN CADENA ---
 
   public startGame(roomCode: string): RoomState | null {
+    return this.startSpecificRound(roomCode, 1, false);
+  }
+
+  public startSpecificRound(roomCode: string, roundNumber: 1 | 2 | 3 | 4 | 5, singleRound: boolean = true): RoomState | null {
     const room = this.rooms.get(roomCode);
     if (!room || room.players.length < 2) return null;
 
-    room.phase = 'ROUND_1';
+    this.clearBotTimeouts(roomCode);
+    room.singleRoundMode = singleRound;
     room.currentStability = 1000;
     room.round1Scores = 0;
     room.round2Scores = 0;
@@ -220,16 +225,43 @@ export class GameManager {
     room.totalScore = 0;
     room.roundStartTime = Date.now();
     room.botRadioMessage = undefined;
+    room.round1 = undefined;
+    room.round2 = undefined;
+    room.round3 = undefined;
     room.round4 = undefined;
     room.round5 = undefined;
+    room.summary = undefined;
 
     // Reset player stats
     for (const p of room.players) {
+      p.role = undefined;
       p.stats = { reactionTimes: [], mistakes: 0, actionsCompleted: 0 };
     }
 
-    this.initRound1Step(room, 1);
+    if (roundNumber === 1) {
+      room.phase = 'ROUND_1';
+      this.initRound1Step(room, 1);
+    } else if (roundNumber === 2) {
+      this.initRound2(room);
+    } else if (roundNumber === 3) {
+      this.initRound3(room);
+    } else if (roundNumber === 4) {
+      this.initRound4(room);
+    } else if (roundNumber === 5) {
+      this.initRound5(room);
+    }
+
     return room;
+  }
+
+  private finishSingleOrNext(room: RoomState, nextRoundInit: () => void) {
+    if (room.singleRoundMode) {
+      room.totalScore = room.round1Scores + room.round2Scores + room.round3Scores + room.round4Scores + room.round5Scores;
+      this.generateSummary(room);
+      this.emit(room, 'gameCompleted', room.summary);
+    } else {
+      nextRoundInit();
+    }
   }
 
   private initRound1Step(room: RoomState, stepNumber: number) {
@@ -331,8 +363,8 @@ export class GameManager {
     } else {
       // Finish Round 1!
       room.round1Scores = room.currentStability;
-      this.initRound2(room);
       this.emit(room, 'roundCompleted', { round: 1, score: room.round1Scores });
+      this.finishSingleOrNext(room, () => this.initRound2(room));
       this.emit(room, 'stateUpdate', room);
     }
 
@@ -554,8 +586,8 @@ export class GameManager {
         elapsedMs: elapsed
       });
 
-      this.initRound3(room);
       this.emit(room, 'roundCompleted', { round: 2, score: room.round2Scores });
+      this.finishSingleOrNext(room, () => this.initRound3(room));
       this.emit(room, 'stateUpdate', room);
       return true;
     }
@@ -605,8 +637,8 @@ export class GameManager {
           score: room.round2Scores,
           elapsedMs: elapsed
         });
-        this.initRound3(room);
         this.emit(room, 'roundCompleted', { round: 2, score: room.round2Scores });
+        this.finishSingleOrNext(room, () => this.initRound3(room));
         this.emit(room, 'stateUpdate', room);
         return true;
       } else {
@@ -806,7 +838,7 @@ export class GameManager {
       const round3Elapsed = Date.now() - room.roundStartTime;
       room.round3Scores = Math.max(100, room.currentStability - Math.floor((round3Elapsed / 1000) * 15));
       this.emit(room, 'roundCompleted', { round: 3, score: room.round3Scores });
-      this.initRound4(room);
+      this.finishSingleOrNext(room, () => this.initRound4(room));
       this.emit(room, 'stateUpdate', room);
     }
 
@@ -1160,7 +1192,7 @@ export class GameManager {
     room.round4Scores = Math.max(100, Math.min(1000, rawScore));
 
     this.emit(room, 'roundCompleted', { round: 4, score: room.round4Scores });
-    this.initRound5(room);
+    this.finishSingleOrNext(room, () => this.initRound5(room));
     this.emit(room, 'stateUpdate', room);
   }
 
@@ -1421,19 +1453,23 @@ export class GameManager {
     room.phase = 'SUMMARY';
 
     const total = room.totalScore;
+    const isSingle = !!room.singleRoundMode;
+    const tHero = isSingle ? 750 : 3750;
+    const tOk = isSingle ? 550 : 2750;
+    const tMed = isSingle ? 350 : 1750;
     let rankTitle = '';
     let rankSubtitle = '';
     let rankBadge = '🎖️';
 
-    if (total >= 3750) {
+    if (total >= tHero) {
       rankBadge = '🎖️';
       rankTitle = 'HÉROES DE LA UNIÓN SOVIÉTICA';
       rankSubtitle = '¡El reactor no estalló! Lenin en persona os concedería la Orden de la Bandera Roja. Recibiréis ración doble de té.';
-    } else if (total >= 2750) {
+    } else if (total >= tOk) {
       rankBadge = '⚠️';
       rankTitle = 'OPERARIOS ACEPTABLES (3.6 ROENTGEN)';
       rankSubtitle = 'Ni genial, ni terrible. El núcleo tiene una pequeña fisura humeante, pero el informe oficial dirá que fue un éxito.';
-    } else if (total >= 1750) {
+    } else if (total >= tMed) {
       rankBadge = '📉';
       rankTitle = 'OPERARIOS MEDIOCRES';
       rankSubtitle = 'La sala de turbinas se inundó con agua hirviendo. Mañana a primera hora todos los turnos serán reasignados a Siberia.';

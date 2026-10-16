@@ -88,6 +88,15 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  // 5b. Start Specific Round (Testing / Single Minigame Mode)
+  socket.on('startSpecificRound', ({ roomCode, roundNumber, singleRound }: { roomCode: string; roundNumber: 1 | 2 | 3 | 4 | 5; singleRound?: boolean }) => {
+    const room = gameManager.startSpecificRound(roomCode, roundNumber, singleRound ?? true);
+    if (room) {
+      io.to(room.code).emit('gameStarted', room);
+      io.to(room.code).emit('stateUpdate', room);
+    }
+  });
+
   // 6. Round 1 Action
   socket.on('round1Action', ({ roomCode, action }: { roomCode: string; action: ActionType }) => {
     gameManager.completeRound1Action(roomCode, socket.id, action);
