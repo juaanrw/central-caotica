@@ -6,6 +6,10 @@ import {
   Round2State, 
   AZ5Console,
   Round4State,
+  Round5State,
+  MazeRole,
+  MazeDirection,
+  MazeCoord,
   ConveyorItem,
   ConveyorStation,
   ConveyorCategory,
@@ -24,7 +28,8 @@ import {
   MANUAL_PART_B_RULES, 
   MANUAL_FULL_RULES,
   CONVEYOR_CATEGORIES_POOL,
-  CONVEYOR_ITEMS_POOL
+  CONVEYOR_ITEMS_POOL,
+  MAZE_BLUEPRINTS
 } from './questions';
 
 const ACTIONS: { type: ActionType; title: string; instructionPhrase: string }[] = [
@@ -91,6 +96,7 @@ export class GameManager {
       round2Scores: 0,
       round3Scores: 0,
       round4Scores: 0,
+      round5Scores: 0,
       totalScore: 0,
       roundStartTime: Date.now()
     };
@@ -210,10 +216,12 @@ export class GameManager {
     room.round2Scores = 0;
     room.round3Scores = 0;
     room.round4Scores = 0;
+    room.round5Scores = 0;
     room.totalScore = 0;
     room.roundStartTime = Date.now();
     room.botRadioMessage = undefined;
     room.round4 = undefined;
+    room.round5 = undefined;
 
     // Reset player stats
     for (const p of room.players) {
@@ -1150,12 +1158,260 @@ export class GameManager {
     const r4 = room.round4;
     const rawScore = 300 + (r4.totalClassified * 40) - (r4.totalMistakes * 25);
     room.round4Scores = Math.max(100, Math.min(1000, rawScore));
-    room.totalScore = room.round1Scores + room.round2Scores + room.round3Scores + room.round4Scores;
 
     this.emit(room, 'roundCompleted', { round: 4, score: room.round4Scores });
-    this.generateSummary(room);
-    this.emit(room, 'gameCompleted', room.summary);
+    this.initRound5(room);
     this.emit(room, 'stateUpdate', room);
+  }
+
+  // --- ROUND 5: SONDA LIQUIDADORA // LABERINTO A CIEGAS (2 A 4 JUGADORES) ---
+
+  private getNextOptimalMazeMove(r5: Round5State): { dir: MazeDirection; nextPos: MazeCoord } | null {
+    const target = r5.hasKey ? r5.goalPos : r5.keyPos;
+    const isBlocked = (r: number, c: number) => {
+      if (r < 0 || r >= r5.gridSize || c < 0 || c >= r5.gridSize) return true;
+      if (r5.walls.some(w => w.row === r && w.col === c)) return true;
+      if (r5.traps.some(t => t.row === r && t.col === c)) return true;
+      return false;
+    };
+
+    const queue: { pos: MazeCoord; firstMove?: { dir: MazeDirection; nextPos: MazeCoord } }[] = [
+      { pos: r5.probePos }
+    ];
+    const visited = new Set<string>([`${r5.probePos.row},${r5.probePos.col}`]);
+
+    const dirs: { dir: MazeDirection; dr: number; dc: number }[] = [
+      { dir: 'UP', dr: -1, dc: 0 },
+      { dir: 'DOWN', dr: 1, dc: 0 },
+      { dir: 'LEFT', dr: 0, dc: -1 },
+      { dir: 'RIGHT', dr: 0, dc: 1 }
+    ];
+
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (curr.pos.row === target.row && curr.pos.col === target.col) {
+        return curr.firstMove || null;
+      }
+
+      for (const d of dirs) {
+        const nr = curr.pos.row + d.dr;
+        const nc = curr.pos.col + d.dc;
+        const key = `${nr},${nc}`;
+        if (!visited.has(key) && !isBlocked(nr, nc)) {
+          visited.add(key);
+          queue.push({
+            pos: { row: nr, col: nc },
+            firstMove: curr.firstMove || { dir: d.dir, nextPos: { row: nr, col: nc } }
+          });
+        }
+      }
+    }
+    return null;
+  }
+
+  private initRound5(room: RoomState) {
+    this.clearBotTimeouts(room.code);
+    room.phase = 'ROUND_5';
+    room.currentStability = 1000;
+    room.roundStartTime = Date.now();
+    room.botRadioMessage = undefined;
+
+    const bp = MAZE_BLUEPRINTS[Math.floor(Math.random() * MAZE_BLUEPRINTS.length)];
+    const shuffledPlayers = [...room.players].sort(() => Math.random() - 0.5);
+    const count = shuffledPlayers.length;
+
+    const playerRoles: Record<string, MazeRole> = {};
+    if (count === 2) {
+      playerRoles[shuffledPlayers[0].id] = 'CARTOGRAFO_TOTAL';
+      playerRoles[shuffledPlayers[1].id] = 'PILOTO_TOTAL';
+    } else if (count === 3) {
+      playerRoles[shuffledPlayers[0].id] = 'CARTOGRAFO_MUROS';
+      playerRoles[shuffledPlayers[1].id] = 'ESCANER_RADIACION';
+      playerRoles[shuffledPlayers[2].id] = 'PILOTO_TOTAL';
+    } else {
+      playerRoles[shuffledPlayers[0].id] = 'CARTOGRAFO_MUROS';
+      playerRoles[shuffledPlayers[1].id] = 'ESCANER_RADIACION';
+      playerRoles[shuffledPlayers[2].id] = 'PILOTO_VERTICAL';
+      playerRoles[shuffledPlayers[3].id] = 'PILOTO_HORIZONTAL';
+    }
+
+    room.round5 = {
+      startTime: Date.now(),
+      gridSize: bp.gridSize,
+      probePos: { ...bp.startPos },
+      startPos: { ...bp.startPos },
+      keyPos: { ...bp.keyPos },
+      goalPos: { ...bp.goalPos },
+      hasKey: false,
+      walls: bp.walls.map(w => ({ ...w })),
+      traps: bp.traps.map(t => ({ ...t })),
+      visitedCells: [{ ...bp.startPos }],
+      playerRoles,
+      lastEventMessage: `Sonda desplegada en F${bp.startPos.row + 1}-C${bp.startPos.col + 1}. Paso 1: Recoger Barra de Cadmio (Llave).`,
+      lastEventStatus: 'INFO'
+    };
+
+    // Bot automation interval for Round 5
+    const botInterval = setInterval(() => {
+      const current = this.rooms.get(room.code);
+      if (!current || current.phase !== 'ROUND_5' || !current.round5) {
+        clearInterval(botInterval);
+        return;
+      }
+
+      const r5 = current.round5;
+      const optimal = this.getNextOptimalMazeMove(r5);
+      if (!optimal) return;
+
+      const dirNames: Record<MazeDirection, string> = {
+        UP: 'ARRIBA (NORTE)',
+        DOWN: 'ABAJO (SUR)',
+        LEFT: 'IZQUIERDA (OESTE)',
+        RIGHT: 'DERECHA (ESTE)'
+      };
+
+      // If any bot is a Cartographer/Scanner, broadcast radio hint
+      const radarBot = current.players.find(p => {
+        if (!p.isBot) return false;
+        const role = r5.playerRoles[p.id];
+        return role === 'CARTOGRAFO_TOTAL' || role === 'CARTOGRAFO_MUROS' || role === 'ESCANER_RADIACION';
+      });
+
+      if (radarBot) {
+        current.botRadioMessage = `[${radarBot.name}]: "¡Vía segura hacia ${dirNames[optimal.dir]} (F${optimal.nextPos.row + 1}-C${optimal.nextPos.col + 1})!"`;
+        this.emit(current, 'stateUpdate', current);
+      }
+
+      // If the pilot responsible for optimal.dir is a bot, execute move
+      const isVertical = optimal.dir === 'UP' || optimal.dir === 'DOWN';
+      const pilotBot = current.players.find(p => {
+        if (!p.isBot) return false;
+        const role = r5.playerRoles[p.id];
+        if (role === 'PILOTO_TOTAL') return true;
+        if (role === 'PILOTO_VERTICAL' && isVertical) return true;
+        if (role === 'PILOTO_HORIZONTAL' && !isVertical) return true;
+        return false;
+      });
+
+      if (pilotBot) {
+        this.handleMazeMove(current.code, pilotBot.id, optimal.dir);
+      }
+    }, 950);
+    this.botTimeouts.set(`${room.code}_r5_bots`, botInterval as any);
+  }
+
+  public handleMazeMove(roomCode: string, playerId: string, direction: MazeDirection): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.phase !== 'ROUND_5' || !room.round5) return false;
+
+    const r5 = room.round5;
+    const player = room.players.find(p => p.id === playerId);
+    if (!player) return false;
+
+    const role = r5.playerRoles[playerId];
+    if (!role) return false;
+
+    // Verify permission based on role
+    if (role === 'PILOTO_VERTICAL' && direction !== 'UP' && direction !== 'DOWN') return false;
+    if (role === 'PILOTO_HORIZONTAL' && direction !== 'LEFT' && direction !== 'RIGHT') return false;
+    if (role !== 'PILOTO_TOTAL' && role !== 'PILOTO_VERTICAL' && role !== 'PILOTO_HORIZONTAL') return false;
+
+    const dr = direction === 'UP' ? -1 : direction === 'DOWN' ? 1 : 0;
+    const dc = direction === 'LEFT' ? -1 : direction === 'RIGHT' ? 1 : 0;
+    const nextRow = r5.probePos.row + dr;
+    const nextCol = r5.probePos.col + dc;
+
+    // 1. Out of bounds check
+    if (nextRow < 0 || nextRow >= r5.gridSize || nextCol < 0 || nextCol >= r5.gridSize) {
+      player.stats.mistakes++;
+      room.currentStability = Math.max(50, room.currentStability - 50);
+      r5.lastEventMessage = `¡IMPACTO CONTRA EL BLINDAJE EXTERIOR! (-50 PTS)`;
+      r5.lastEventStatus = 'ERROR';
+      this.emit(room, 'mazeError', { message: r5.lastEventMessage, playerId });
+      this.emit(room, 'stateUpdate', room);
+      return false;
+    }
+
+    // 2. Wall collision check
+    const hitWall = r5.walls.some(w => w.row === nextRow && w.col === nextCol);
+    if (hitWall) {
+      player.stats.mistakes++;
+      room.currentStability = Math.max(50, room.currentStability - 50);
+      r5.lastEventMessage = `🧱 ¡COLISIÓN CONTRA MURO EN F${nextRow + 1}-C${nextCol + 1}! La sonda rebota (-50 PTS)`;
+      r5.lastEventStatus = 'ERROR';
+      this.emit(room, 'mazeError', { message: r5.lastEventMessage, playerId });
+      this.emit(room, 'stateUpdate', room);
+      return false;
+    }
+
+    // 3. Radiation trap check
+    const hitTrap = r5.traps.some(t => t.row === nextRow && t.col === nextCol);
+    if (hitTrap) {
+      player.stats.mistakes++;
+      room.currentStability = Math.max(50, room.currentStability - 100);
+      const respawnPos = r5.hasKey ? { ...r5.keyPos } : { ...r5.startPos };
+      r5.probePos = respawnPos;
+      r5.lastEventMessage = `☢️ ¡FUGA RADIACTIVA EN F${nextRow + 1}-C${nextCol + 1}! Sonda reiniciada a F${respawnPos.row + 1}-C${respawnPos.col + 1} (-100 PTS)`;
+      r5.lastEventStatus = 'ERROR';
+      this.emit(room, 'mazeError', { message: r5.lastEventMessage, playerId });
+      this.emit(room, 'stateUpdate', room);
+      return false;
+    }
+
+    // 4. Valid move!
+    r5.probePos = { row: nextRow, col: nextCol };
+    if (!r5.visitedCells.some(v => v.row === nextRow && v.col === nextCol)) {
+      r5.visitedCells.push({ row: nextRow, col: nextCol });
+    }
+
+    player.stats.actionsCompleted++;
+    player.stats.reactionTimes.push(Math.min(3500, Date.now() - r5.startTime));
+
+    // Check if stepped on Key
+    if (!r5.hasKey && nextRow === r5.keyPos.row && nextCol === r5.keyPos.col) {
+      r5.hasKey = true;
+      room.currentStability = Math.min(1000, room.currentStability + 60);
+      r5.lastEventMessage = `🔓 ¡BARRA DE CADMIO RECOGIDA EN F${nextRow + 1}-C${nextCol + 1}! Compuerta del Núcleo abierta.`;
+      r5.lastEventStatus = 'SUCCESS';
+      this.emit(room, 'mazeKeyCollected', { playerId, pos: r5.probePos });
+      this.emit(room, 'stateUpdate', room);
+      return true;
+    }
+
+    // Check if stepped on Goal
+    if (nextRow === r5.goalPos.row && nextCol === r5.goalPos.col) {
+      if (!r5.hasKey) {
+        r5.lastEventMessage = `🔒 ¡COMPUERTA CERRADA EN F${nextRow + 1}-C${nextCol + 1}! Recoge primero la Barra de Cadmio (Llave).`;
+        r5.lastEventStatus = 'ERROR';
+        this.emit(room, 'stateUpdate', room);
+        return true;
+      }
+
+      // Goal reached with Key! Complete Round 5 & Game!
+      this.clearBotTimeouts(room.code);
+      const elapsedSeconds = (Date.now() - r5.startTime) / 1000;
+      room.round5Scores = Math.max(100, Math.min(1000, room.currentStability - Math.floor(elapsedSeconds * 15)));
+      room.totalScore = room.round1Scores + room.round2Scores + room.round3Scores + room.round4Scores + room.round5Scores;
+
+      // Credit radar operators for their guidance
+      for (const p of room.players) {
+        const pRole = r5.playerRoles[p.id];
+        if (pRole === 'CARTOGRAFO_TOTAL' || pRole === 'CARTOGRAFO_MUROS' || pRole === 'ESCANER_RADIACION') {
+          p.stats.actionsCompleted += 2;
+        }
+      }
+
+      this.emit(room, 'roundCompleted', { round: 5, score: room.round5Scores });
+      this.generateSummary(room);
+      this.emit(room, 'gameCompleted', room.summary);
+      this.emit(room, 'stateUpdate', room);
+      return true;
+    }
+
+    r5.lastEventMessage = `Sonda en posición F${nextRow + 1}-C${nextCol + 1}.`;
+    r5.lastEventStatus = 'INFO';
+    this.emit(room, 'stateUpdate', room);
+    return true;
   }
 
   // --- SUMMARY & SARCASTIC VIRAL AWARDS ---
@@ -1169,15 +1425,15 @@ export class GameManager {
     let rankSubtitle = '';
     let rankBadge = '🎖️';
 
-    if (total >= 3000) {
+    if (total >= 3750) {
       rankBadge = '🎖️';
       rankTitle = 'HÉROES DE LA UNIÓN SOVIÉTICA';
       rankSubtitle = '¡El reactor no estalló! Lenin en persona os concedería la Orden de la Bandera Roja. Recibiréis ración doble de té.';
-    } else if (total >= 2200) {
+    } else if (total >= 2750) {
       rankBadge = '⚠️';
       rankTitle = 'OPERARIOS ACEPTABLES (3.6 ROENTGEN)';
       rankSubtitle = 'Ni genial, ni terrible. El núcleo tiene una pequeña fisura humeante, pero el informe oficial dirá que fue un éxito.';
-    } else if (total >= 1400) {
+    } else if (total >= 1750) {
       rankBadge = '📉';
       rankTitle = 'OPERARIOS MEDIOCRES';
       rankSubtitle = 'La sala de turbinas se inundó con agua hirviendo. Mañana a primera hora todos los turnos serán reasignados a Siberia.';
@@ -1267,10 +1523,14 @@ export class GameManager {
     room.round1Scores = 0;
     room.round2Scores = 0;
     room.round3Scores = 0;
+    room.round4Scores = 0;
+    room.round5Scores = 0;
     room.totalScore = 0;
     room.round1 = undefined;
     room.round2 = undefined;
     room.round3 = undefined;
+    room.round4 = undefined;
+    room.round5 = undefined;
     room.summary = undefined;
     room.botRadioMessage = undefined;
 

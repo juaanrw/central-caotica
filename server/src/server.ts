@@ -3,7 +3,7 @@ import http from 'http';
 import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import { GameManager } from './gameManager';
-import { ActionType } from './types';
+import { ActionType, MazeDirection } from './types';
 
 const app = express();
 app.use(cors());
@@ -116,7 +116,12 @@ io.on('connection', (socket: Socket) => {
     gameManager.handleConveyorAction(roomCode, socket.id, action);
   });
 
-  // 11. Restart Game
+  // 11. Round 5: Blind Maze Move
+  socket.on('mazeMove', ({ roomCode, direction }: { roomCode: string; direction: MazeDirection }) => {
+    gameManager.handleMazeMove(roomCode, socket.id, direction);
+  });
+
+  // 12. Restart Game
   socket.on('restartGame', ({ roomCode }: { roomCode: string }) => {
     const room = gameManager.restartGame(roomCode);
     if (room) {

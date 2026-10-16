@@ -54,14 +54,15 @@ export const FinalReportScreen: React.FC<FinalReportProps> = ({
         <div className="flex justify-between items-center text-xs text-gray-400 font-bold mb-1 border-b border-gray-700 pb-1">
           <span>PUNTUACIÓN TOTAL DEL TURNO</span>
           <span className="text-[#00FF66] font-mono text-sm font-black">
-            {summary.totalScore} / 4000 PTS
+            {summary.totalScore} / 5000 PTS
           </span>
         </div>
-        <div className="grid grid-cols-4 gap-1 text-[9px] font-mono text-gray-300 py-1 border-b border-gray-700/60 text-center">
+        <div className="grid grid-cols-5 gap-1 text-[9px] font-mono text-gray-300 py-1 border-b border-gray-700/60 text-center">
           <div>P1: <span className="text-[#00FF66] font-bold">{room.round1Scores ?? 0}</span></div>
           <div>P2: <span className="text-[#00FF66] font-bold">{room.round2Scores ?? 0}</span></div>
           <div>P3: <span className="text-[#00FF66] font-bold">{room.round3Scores ?? 0}</span></div>
           <div>P4: <span className="text-[#00FF66] font-bold">{room.round4Scores ?? 0}</span></div>
+          <div>P5: <span className="text-[#00FF66] font-bold">{room.round5Scores ?? 0}</span></div>
         </div>
 
         {/* Big Rank Title */}

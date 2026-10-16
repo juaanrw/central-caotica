@@ -22,9 +22,40 @@ export interface Player {
   stats: PlayerStats;
 }
 
-export type GamePhase = 'LOBBY' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'ROUND_4' | 'SUMMARY';
+export type GamePhase = 'LOBBY' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'ROUND_4' | 'ROUND_5' | 'SUMMARY';
 
 export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP' | 'SHOUT';
+
+export type MazeRole =
+  | 'CARTOGRAFO_TOTAL'
+  | 'CARTOGRAFO_MUROS'
+  | 'ESCANER_RADIACION'
+  | 'PILOTO_TOTAL'
+  | 'PILOTO_VERTICAL'
+  | 'PILOTO_HORIZONTAL';
+
+export type MazeDirection = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
+
+export interface MazeCoord {
+  row: number;
+  col: number;
+}
+
+export interface Round5State {
+  startTime: number;
+  gridSize: number; // 6
+  probePos: MazeCoord;
+  startPos: MazeCoord;
+  keyPos: MazeCoord;
+  goalPos: MazeCoord;
+  hasKey: boolean;
+  walls: MazeCoord[];
+  traps: MazeCoord[];
+  visitedCells: MazeCoord[];
+  playerRoles: Record<string, MazeRole>;
+  lastEventMessage?: string;
+  lastEventStatus?: 'INFO' | 'SUCCESS' | 'ERROR';
+}
 
 export type ConveyorDestinationId = 'LEFT_BIN' | 'PLAYER_0' | 'PLAYER_1' | 'PLAYER_2' | 'PLAYER_3' | 'RIGHT_BIN';
 
@@ -195,12 +226,14 @@ export interface RoomState {
   round2Scores: number;
   round3Scores: number;
   round4Scores: number;
+  round5Scores: number;
   totalScore: number;
   roundStartTime: number;
   round1?: Round1Step;
   round2?: Round2State;
   round3?: Round3State;
   round4?: Round4State;
+  round5?: Round5State;
   summary?: GameSummary;
   botRadioMessage?: string;
 }

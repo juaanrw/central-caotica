@@ -515,3 +515,77 @@ export const CONVEYOR_ITEMS_POOL: RawConveyorItem[] = [
   { name: 'Válvula de Escape de Vapor', categoryId: 'GASES' },
   { name: 'Condensador de Vapor Radiactivo', categoryId: 'GASES' }
 ];
+
+export interface MazeBlueprint {
+  name: string;
+  gridSize: number;
+  startPos: { row: number; col: number };
+  keyPos: { row: number; col: number };
+  goalPos: { row: number; col: number };
+  walls: { row: number; col: number }[];
+  traps: { row: number; col: number }[];
+}
+
+export const MAZE_BLUEPRINTS: MazeBlueprint[] = [
+  {
+    name: 'CONDUCTO PRIMARIO RBMK',
+    gridSize: 6,
+    startPos: { row: 0, col: 0 },
+    keyPos: { row: 1, col: 4 },
+    goalPos: { row: 5, col: 5 },
+    walls: [
+      { row: 0, col: 1 }, { row: 1, col: 1 }, { row: 0, col: 3 },
+      { row: 2, col: 3 }, { row: 3, col: 1 }, { row: 3, col: 5 }, { row: 5, col: 3 }
+    ],
+    traps: [
+      { row: 0, col: 2 }, { row: 2, col: 5 }, { row: 3, col: 0 },
+      { row: 4, col: 1 }, { row: 5, col: 2 }, { row: 5, col: 4 }
+    ]
+  },
+  {
+    name: 'BÚNKER DE TURBINAS SUR',
+    gridSize: 6,
+    startPos: { row: 0, col: 0 },
+    keyPos: { row: 4, col: 1 },
+    goalPos: { row: 5, col: 5 },
+    walls: [
+      { row: 1, col: 0 }, { row: 1, col: 1 }, { row: 3, col: 2 },
+      { row: 2, col: 3 }, { row: 1, col: 4 }, { row: 4, col: 5 }, { row: 5, col: 2 }
+    ],
+    traps: [
+      { row: 0, col: 3 }, { row: 2, col: 0 }, { row: 5, col: 1 },
+      { row: 2, col: 4 }, { row: 5, col: 3 }, { row: 3, col: 5 }
+    ]
+  },
+  {
+    name: 'SARCÓFAGO DE HORMIGÓN 4',
+    gridSize: 6,
+    startPos: { row: 0, col: 0 },
+    keyPos: { row: 0, col: 5 },
+    goalPos: { row: 5, col: 5 },
+    walls: [
+      { row: 0, col: 1 }, { row: 2, col: 1 }, { row: 1, col: 3 },
+      { row: 3, col: 4 }, { row: 4, col: 4 }, { row: 3, col: 1 }, { row: 4, col: 2 }
+    ],
+    traps: [
+      { row: 2, col: 0 }, { row: 1, col: 4 }, { row: 3, col: 5 },
+      { row: 2, col: 2 }, { row: 4, col: 5 }, { row: 5, col: 2 }
+    ]
+  },
+  {
+    name: 'PISCINA DE COMBUSTIBLE GASTADO',
+    gridSize: 6,
+    startPos: { row: 0, col: 0 },
+    keyPos: { row: 3, col: 0 },
+    goalPos: { row: 5, col: 5 },
+    walls: [
+      { row: 1, col: 0 }, { row: 2, col: 0 }, { row: 0, col: 2 },
+      { row: 4, col: 1 }, { row: 1, col: 3 }, { row: 3, col: 3 }, { row: 5, col: 4 }
+    ],
+    traps: [
+      { row: 4, col: 0 }, { row: 1, col: 2 }, { row: 4, col: 2 },
+      { row: 1, col: 4 }, { row: 2, col: 5 }, { row: 3, col: 5 }
+    ]
+  }
+];
+

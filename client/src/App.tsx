@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { socket } from './socket';
-import { RoomState, ActionType } from './types';
+import { RoomState, ActionType, MazeDirection } from './types';
 import { sound } from './soundEngine';
 import { Header } from './components/Header';
 import { JoinCreateScreen } from './components/JoinCreateScreen';
@@ -9,6 +9,7 @@ import { Round1ChainReaction } from './components/Round1ChainReaction';
 import { Round2AZ5Panel } from './components/Round2AZ5Panel';
 import { Round3MinistryCall } from './components/Round3MinistryCall';
 import { Round4ConveyorBelt } from './components/Round4ConveyorBelt';
+import { Round5BlindMaze } from './components/Round5BlindMaze';
 import { FinalReportScreen } from './components/FinalReportScreen';
 
 export const App: React.FC = () => {
@@ -86,6 +87,15 @@ export const App: React.FC = () => {
       sound.playSuccess();
     });
 
+    socket.on('mazeError', () => {
+      sound.playBuzzer();
+      triggerShake();
+    });
+
+    socket.on('mazeKeyCollected', () => {
+      sound.playSuccess();
+    });
+
     return () => {
       socket.off('connect');
       socket.off('roomCreated');
@@ -98,6 +108,8 @@ export const App: React.FC = () => {
       socket.off('az5Success');
       socket.off('triviaError');
       socket.off('triviaSuccess');
+      socket.off('mazeError');
+      socket.off('mazeKeyCollected');
     };
   }, []);
 
@@ -155,6 +167,12 @@ export const App: React.FC = () => {
   const handleConveyorAction = (action: 'PASS_LEFT' | 'PASS_RIGHT' | 'CLAIM') => {
     if (room) {
       socket.emit('conveyorAction', { roomCode: room.code, action });
+    }
+  };
+
+  const handleMazeMove = (direction: MazeDirection) => {
+    if (room) {
+      socket.emit('mazeMove', { roomCode: room.code, direction });
     }
   };
 
@@ -228,6 +246,14 @@ export const App: React.FC = () => {
           />
         )}
 
+        {room && room.phase === 'ROUND_5' && (
+          <Round5BlindMaze
+            room={room}
+            currentSocketId={socketId}
+            onMazeMove={handleMazeMove}
+          />
+        )}
+
         {room && room.phase === 'SUMMARY' && (
           <FinalReportScreen
             room={room}
@@ -239,3 +265,4 @@ export const App: React.FC = () => {
     </div>
   );
 };
+

@@ -149,12 +149,72 @@ async function runTest() {
     console.log('✅ Round 4 finished! Classified:', currentRoom.round4?.totalClassified, 'Mistakes:', currentRoom.round4?.totalMistakes);
   }
 
+  if (currentRoom.phase === 'ROUND_5') {
+    console.log('--- TESTING ROUND 5: LABERINTO A CIEGAS (SONDA RBMK) ---');
+    const r5Init = currentRoom.round5;
+    console.log('Maze Roles:', r5Init.playerRoles);
+
+    const getBfsMove = (r5) => {
+      const target = r5.hasKey ? r5.goalPos : r5.keyPos;
+      const isBlocked = (r, c) =>
+        r < 0 || r >= r5.gridSize || c < 0 || c >= r5.gridSize ||
+        r5.walls.some(w => w.row === r && w.col === c) ||
+        r5.traps.some(t => t.row === r && t.col === c);
+
+      const q = [{ pos: r5.probePos }];
+      const vis = new Set([`${r5.probePos.row},${r5.probePos.col}`]);
+      const dirs = [
+        { dir: 'UP', dr: -1, dc: 0 },
+        { dir: 'DOWN', dr: 1, dc: 0 },
+        { dir: 'LEFT', dr: 0, dc: -1 },
+        { dir: 'RIGHT', dr: 0, dc: 1 }
+      ];
+      while (q.length > 0) {
+        const curr = q.shift();
+        if (curr.pos.row === target.row && curr.pos.col === target.col) return curr.first;
+        for (const d of dirs) {
+          const nr = curr.pos.row + d.dr;
+          const nc = curr.pos.col + d.dc;
+          const k = `${nr},${nc}`;
+          if (!vis.has(k) && !isBlocked(nr, nc)) {
+            vis.add(k);
+            q.push({ pos: { row: nr, col: nc }, first: curr.first || d.dir });
+          }
+        }
+      }
+      return null;
+    };
+
+    let r5Safety = 0;
+    while (currentRoom.phase === 'ROUND_5' && r5Safety < 35) {
+      r5Safety++;
+      const curR5 = currentRoom.round5;
+      if (curR5) {
+        const myRole = curR5.playerRoles[socket1.id];
+        const nextDir = getBfsMove(curR5);
+        console.log(`[R5] Probe at F${curR5.probePos.row + 1}-C${curR5.probePos.col + 1} | Key: ${curR5.hasKey} | Next: ${nextDir}`);
+        if (nextDir) {
+          const isVert = nextDir === 'UP' || nextDir === 'DOWN';
+          if (
+            myRole === 'PILOTO_TOTAL' ||
+            (myRole === 'PILOTO_VERTICAL' && isVert) ||
+            (myRole === 'PILOTO_HORIZONTAL' && !isVert)
+          ) {
+            socket1.emit('mazeMove', { roomCode: currentRoom.code, direction: nextDir });
+          }
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 650));
+    }
+    console.log('✅ Round 5 completed! Score:', currentRoom.round5Scores, 'Phase:', currentRoom.phase);
+  }
+
   console.log('--- SUMMARY RESULTS ---');
   console.log('Total Score:', currentRoom.summary?.totalScore);
   console.log('Rank:', currentRoom.summary?.rankTitle);
   console.log('Awards:', currentRoom.summary?.awards.map(a => `${a.icon} ${a.title} -> ${a.playerName}`));
 
-  // 7. Test Restart
+  // 8. Test Restart
   socket1.emit('restartGame', { roomCode: currentRoom.code });
   await new Promise((resolve) => setTimeout(resolve, 500));
   console.log('✅ Game restarted to phase:', currentRoom.phase);
