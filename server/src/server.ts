@@ -141,8 +141,8 @@ io.on('connection', (socket: Socket) => {
   });
 });
 
-const PORT = 3001;
-server.listen(PORT, '0.0.0.0', () => {
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
   console.log(`===============================================`);
   console.log(`☢️ CENTRAL CAÓTICA // SERVIDOR DE NÚCLEO RBMK`);
   console.log(`📻 Socket.IO escuchando en el puerto ${PORT}`);
