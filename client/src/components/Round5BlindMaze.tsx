@@ -79,36 +79,36 @@ export const Round5BlindMaze: React.FC<Round5Props> = ({
       {/* 1. Top Header & Role Badge */}
       <div className="bg-[#1C1E24] border-3 border-black p-2.5 shadow-brutal flex items-center justify-between shrink-0">
         <div>
-          <span className="text-[10px] text-[#00F0FF] font-black uppercase tracking-wider block leading-none">
+          <span className="text-[11px] text-[#00F0FF] font-black uppercase tracking-wider block leading-none">
             PRUEBA 5: LABERINTO A CIEGAS
           </span>
-          <span className="text-xs text-gray-200 font-bold mt-0.5 block">
+          <span className="text-sm text-gray-200 font-extrabold mt-0.5 block">
             SONDA LIQUIDADORA RBMK
           </span>
         </div>
-        <div className="px-2 py-1 border-2 border-black font-black text-[9px] uppercase shadow-brutal-sm bg-[#FFD600] text-black max-w-[170px] leading-tight break-words text-right">
+        <div className="px-2.5 py-1.5 border-2 border-black font-black text-[10px] sm:text-xs uppercase shadow-brutal-sm bg-[#FFD600] text-black max-w-[180px] leading-tight break-words text-right">
           {getRoleTitle()}
         </div>
       </div>
 
       {/* 2. Mission Phase & Live Coordinates Bar */}
       <div className="grid grid-cols-2 gap-1.5 shrink-0">
-        <div className={`p-1.5 border-2 border-black flex items-center gap-1.5 shadow-brutal-sm ${
+        <div className={`p-2 border-2 border-black flex items-center gap-2 shadow-brutal-sm ${
           r5.hasKey ? 'bg-[#00FF66]/20 border-[#00FF66] text-[#00FF66]' : 'bg-[#1C1E24] text-[#FFD600]'
         }`}>
           {r5.hasKey ? <Unlock className="w-4 h-4 shrink-0" /> : <Lock className="w-4 h-4 shrink-0" />}
           <div className="min-w-0">
-            <div className="text-[8px] font-mono uppercase text-gray-400 leading-none">ESTADO COMPUERTA</div>
-            <div className="text-[10px] font-black uppercase truncate">
+            <div className="text-[9px] font-mono uppercase text-gray-400 leading-none">ESTADO COMPUERTA</div>
+            <div className="text-xs font-black uppercase truncate mt-0.5">
               {r5.hasKey ? 'PASO 2: IR AL NÚCLEO' : 'PASO 1: BUSCAR LLAVE'}
             </div>
           </div>
         </div>
 
-        <div className="p-1.5 bg-[#1C1E24] border-2 border-black flex items-center justify-between shadow-brutal-sm">
+        <div className="p-2 bg-[#1C1E24] border-2 border-black flex items-center justify-between shadow-brutal-sm">
           <div>
-            <div className="text-[8px] font-mono uppercase text-gray-400 leading-none">POSICIÓN SONDA</div>
-            <div className="text-xs font-mono font-black text-[#00F0FF]">
+            <div className="text-[9px] font-mono uppercase text-gray-400 leading-none">POSICIÓN SONDA</div>
+            <div className="text-xs sm:text-sm font-mono font-black text-[#00F0FF] mt-0.5">
               FILA {r5.probePos.row + 1} · COL {r5.probePos.col + 1}
             </div>
           </div>
@@ -210,28 +210,28 @@ export const Round5BlindMaze: React.FC<Round5Props> = ({
         </div>
 
         {/* Sensor Legend */}
-        <div className="w-full mt-2 pt-1.5 border-t border-gray-800 flex flex-wrap items-center justify-center gap-2 text-[9px] font-mono text-gray-300">
-          <span className="flex items-center gap-1">
+        <div className="w-full mt-2 pt-1.5 border-t border-gray-800 flex flex-wrap items-center justify-center gap-2.5 text-[10px] sm:text-xs font-mono text-gray-300">
+          <span className="flex items-center gap-1 font-bold">
             <span className="inline-block w-2.5 h-2.5 bg-[#00F0FF] border border-white" /> SONDA
           </span>
           {canSeeWalls && (
-            <span className="flex items-center gap-1 text-gray-300">
-              <BrickWall className="w-3 h-3" /> MURO
+            <span className="flex items-center gap-1 text-gray-300 font-bold">
+              <BrickWall className="w-3.5 h-3.5" /> MURO
             </span>
           )}
           {canSeeKey && (
-            <span className="flex items-center gap-1 text-[#FFD600]">
-              <KeyRound className="w-3 h-3" /> LLAVE CADMIO
+            <span className="flex items-center gap-1 text-[#FFD600] font-bold">
+              <KeyRound className="w-3.5 h-3.5" /> LLAVE CADMIO
             </span>
           )}
           {canSeeTraps && (
-            <span className="flex items-center gap-1 text-[#FF2A2A]">
-              <Radiation className="w-3 h-3" /> FUGA RADIACTIVA
+            <span className="flex items-center gap-1 text-[#FF2A2A] font-bold">
+              <Radiation className="w-3.5 h-3.5" /> FUGA RADIACTIVA
             </span>
           )}
           {canSeeGoal && (
-            <span className="flex items-center gap-1 text-[#00FF66]">
-              <Crosshair className="w-3 h-3" /> META (NÚCLEO)
+            <span className="flex items-center gap-1 text-[#00FF66] font-bold">
+              <Crosshair className="w-3.5 h-3.5" /> META (NÚCLEO)
             </span>
           )}
         </div>

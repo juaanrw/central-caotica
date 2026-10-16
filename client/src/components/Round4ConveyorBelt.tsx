@@ -243,7 +243,7 @@ export const Round4ConveyorBelt: React.FC<Round4Props> = ({
         )}
 
         {currentItem ? (
-          <div className="w-full max-w-[320px] relative">
+          <div className="w-full max-w-[360px] relative">
             {/* Stack Shadow 2 (if 3+ items in pile) */}
             {myQueue.length >= 3 && (
               <div 
@@ -268,58 +268,58 @@ export const Round4ConveyorBelt: React.FC<Round4Props> = ({
             <div
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
-              className={`relative z-10 w-full bg-[#1C1E24] border-4 border-black p-4 shadow-brutal transition-transform select-none cursor-grab active:cursor-grabbing ${animClass}`}
+              className={`relative z-10 w-full bg-[#1C1E24] border-4 border-black p-4 sm:p-5 shadow-brutal transition-transform select-none cursor-grab active:cursor-grabbing ${animClass}`}
               style={{ borderTopColor: currentItem.color }}
             >
               {/* Top Tag & Queue Count */}
-              <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-gray-700">
-                <span className="text-[10px] font-mono text-gray-400">
+              <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-700">
+                <span className="text-xs font-mono font-bold text-gray-300">
                   ELEMENTO EN CINTA
                 </span>
-                <span className="text-[10px] bg-black px-2 py-0.5 border border-gray-700 text-[#00F0FF] font-mono font-bold flex items-center gap-1">
-                  <Layers className="w-3 h-3 text-[#FFD600]" />
+                <span className="text-xs bg-black px-2.5 py-1 border border-gray-700 text-[#00F0FF] font-mono font-black flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-[#FFD600]" />
                   {myQueue.length > 1 ? `PILA: ${myQueue.length} (${myQueue.length - 1} en cola)` : 'Único en cinta'}
                 </span>
               </div>
 
               {/* Item Icon & Title */}
-              <div className="flex items-center gap-3 my-2">
+              <div className="flex items-center gap-3.5 my-3">
                 <div 
-                  className="w-14 h-14 shrink-0 border-3 border-black flex items-center justify-center text-black font-black"
+                  className="w-16 h-16 shrink-0 border-3 border-black flex items-center justify-center text-black font-black shadow-brutal-sm"
                   style={{ backgroundColor: currentItem.color }}
                 >
-                  {renderIcon(currentItem.iconName, "w-8 h-8")}
+                  {renderIcon(currentItem.iconName, "w-9 h-9")}
                 </div>
                 <div className="flex-1 min-w-0">
                   <span 
-                    className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 border border-black inline-block mb-1 text-black"
+                    className="text-xs font-black uppercase tracking-wider px-2 py-0.5 border border-black inline-block mb-1 text-black"
                     style={{ backgroundColor: currentItem.color }}
                   >
                     {currentItem.categoryName}
                   </span>
-                  <h3 className="text-base font-black text-white leading-tight uppercase tracking-tight truncate">
+                  <h3 className="text-lg font-black text-white leading-snug uppercase tracking-tight truncate">
                     {currentItem.name}
                   </h3>
                 </div>
               </div>
 
               {/* Gesture Hint */}
-              <div className="mt-3 pt-2 border-t border-dashed border-gray-700 flex items-center justify-between text-[10px] text-gray-400 font-mono">
+              <div className="mt-3 pt-2.5 border-t border-dashed border-gray-700 flex items-center justify-between text-xs text-gray-300 font-mono font-bold">
                 <span>◀ Desliza Izq</span>
-                <span className="text-[#00FF66] font-bold">↓ Desliza Abajo</span>
+                <span className="text-[#00FF66] font-black">↓ Quédatelo</span>
                 <span>Desliza Dch ▶</span>
               </div>
             </div>
           </div>
         ) : (
-          <div className="p-6 bg-[#1C1E24] border-3 border-black text-center text-gray-400 max-w-[320px] w-full shadow-brutal">
-            <div className="animate-spin mb-2 flex justify-center text-[#FFD600]">
-              <Layers className="w-8 h-8" />
+          <div className="p-8 bg-[#1C1E24] border-4 border-black text-center text-gray-400 max-w-[360px] w-full shadow-brutal">
+            <div className="animate-spin mb-3 flex justify-center text-[#FFD600]">
+              <Layers className="w-10 h-10" />
             </div>
-            <p className="text-xs uppercase font-bold text-white mb-1">
+            <p className="text-sm uppercase font-black text-white mb-1">
               CINTA DESPEJADA // EN ESPERA
             </p>
-            <p className="text-[10px] text-gray-400 font-mono">
+            <p className="text-xs text-gray-300 font-mono">
               Esperando transferencias de tus compañeros o suministro cada 3s...
             </p>
           </div>
@@ -333,13 +333,13 @@ export const Round4ConveyorBelt: React.FC<Round4Props> = ({
           <button
             onClick={() => handleAction('PASS_LEFT')}
             disabled={!currentItem}
-            className="flex flex-col items-center justify-center p-2.5 bg-[#2A2D37] hover:bg-[#383C4A] active:translate-y-1 text-white border-3 border-black shadow-brutal-sm transition-all disabled:opacity-40"
+            className="flex flex-col items-center justify-center p-3 sm:p-3.5 bg-[#2A2D37] hover:bg-[#383C4A] active:translate-y-1 text-white border-3 border-black shadow-brutal-sm transition-all disabled:opacity-40 min-h-[58px]"
           >
-            <div className="flex items-center gap-1 font-black text-xs uppercase text-[#00F0FF]">
-              <ArrowLeft className="w-4 h-4" />
+            <div className="flex items-center gap-1 font-black text-xs sm:text-sm uppercase text-[#00F0FF]">
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>PASAR IZQ</span>
             </div>
-            <span className="text-[9px] text-gray-400 truncate max-w-full font-mono mt-0.5">
+            <span className="text-[10px] text-gray-300 truncate max-w-full font-mono mt-0.5 font-bold">
               {leftNeighbor ? (leftNeighbor.isBin ? 'Contenedor Izq' : leftNeighbor.playerName) : 'Fin'}
             </span>
           </button>
@@ -348,13 +348,13 @@ export const Round4ConveyorBelt: React.FC<Round4Props> = ({
           <button
             onClick={() => handleAction('CLAIM')}
             disabled={!currentItem}
-            className="flex flex-col items-center justify-center p-2.5 bg-[#FFD600] hover:bg-yellow-400 active:translate-y-1 text-black border-3 border-black shadow-brutal transition-all font-black disabled:opacity-40"
+            className="flex flex-col items-center justify-center p-3 sm:p-3.5 bg-[#FFD600] hover:bg-yellow-400 active:translate-y-1 text-black border-3 border-black shadow-brutal transition-all font-black disabled:opacity-40 min-h-[58px]"
           >
-            <div className="flex items-center gap-1 font-black text-xs uppercase text-black">
-              <Inbox className="w-4 h-4 fill-black" />
+            <div className="flex items-center gap-1 font-black text-xs sm:text-sm uppercase text-black">
+              <Inbox className="w-4 h-4 sm:w-5 sm:h-5 fill-black" />
               <span>QUEDÁRSELO</span>
             </div>
-            <span className="text-[9px] text-black/80 font-bold truncate max-w-full font-mono mt-0.5">
+            <span className="text-[10px] text-black font-extrabold truncate max-w-full font-mono mt-0.5">
               {myStation ? myStation.category.shortName : 'Mi puesto'}
             </span>
           </button>
@@ -363,13 +363,13 @@ export const Round4ConveyorBelt: React.FC<Round4Props> = ({
           <button
             onClick={() => handleAction('PASS_RIGHT')}
             disabled={!currentItem}
-            className="flex flex-col items-center justify-center p-2.5 bg-[#2A2D37] hover:bg-[#383C4A] active:translate-y-1 text-white border-3 border-black shadow-brutal-sm transition-all disabled:opacity-40"
+            className="flex flex-col items-center justify-center p-3 sm:p-3.5 bg-[#2A2D37] hover:bg-[#383C4A] active:translate-y-1 text-white border-3 border-black shadow-brutal-sm transition-all disabled:opacity-40 min-h-[58px]"
           >
-            <div className="flex items-center gap-1 font-black text-xs uppercase text-[#00F0FF]">
+            <div className="flex items-center gap-1 font-black text-xs sm:text-sm uppercase text-[#00F0FF]">
               <span>PASAR DCH</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <span className="text-[9px] text-gray-400 truncate max-w-full font-mono mt-0.5">
+            <span className="text-[10px] text-gray-300 truncate max-w-full font-mono mt-0.5 font-bold">
               {rightNeighbor ? (rightNeighbor.isBin ? 'Contenedor Dch' : rightNeighbor.playerName) : 'Fin'}
             </span>
           </button>

@@ -151,68 +151,68 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
 
       {/* SENDER BANNER: Only shown to the Sender! (No one else knows who has to do what except by listening) */}
       {isSender ? (
-        <div className="my-2 bg-[#FFD600] border-4 border-black p-3 text-black shadow-brutal text-center animate-pulse-fast">
-          <div className="inline-flex items-center gap-1.5 bg-black text-[#FFD600] px-2 py-0.5 border border-black text-xs font-black uppercase mb-1">
-            <Radio className="w-3.5 h-3.5 animate-bounce" />
+        <div className="my-2 bg-[#FFD600] border-4 border-black p-3.5 text-black shadow-brutal text-center animate-pulse-fast shrink-0">
+          <div className="inline-flex items-center gap-2 bg-black text-[#FFD600] px-2.5 py-1 border border-black text-xs sm:text-sm font-black uppercase mb-1.5">
+            <Radio className="w-4 h-4 animate-bounce" />
             ¡TIENES LA ORDEN! DÍCTALA EN VOZ ALTA:
           </div>
-          <div className="text-sm font-black uppercase text-black leading-tight mt-1 bg-white/40 p-2 border-2 border-black">
+          <div className="text-base sm:text-lg font-black uppercase text-black leading-snug mt-1 bg-white/50 p-2.5 border-2 border-black tracking-tight">
             "{step.actionInstruction}"
           </div>
         </div>
       ) : (
-        <div className="my-2 bg-[#1C1E24] border-3 border-gray-700 p-2.5 text-center shadow-brutal">
-          <div className="flex items-center justify-center gap-1.5 text-[#00F0FF] text-xs font-black uppercase">
-            <Volume2 className="w-4 h-4 animate-pulse" />
+        <div className="my-2 bg-[#1C1E24] border-3 border-gray-700 p-3 text-center shadow-brutal shrink-0">
+          <div className="flex items-center justify-center gap-2 text-[#00F0FF] text-xs sm:text-sm font-black uppercase">
+            <Volume2 className="w-5 h-5 animate-pulse" />
             ESCUCHA LA TRANSMISIÓN POR VOZ
           </div>
-          <p className="text-[11px] text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-300 mt-1 font-mono">
             Mantén tus mandos listos. Si oyes tu nombre, ejecuta tu orden de inmediato.
           </p>
         </div>
       )}
 
       {/* PHYSICAL CONTROLS (Active for everyone! If wrong player clicks, penalty is triggered) */}
-      <div className="flex-1 flex flex-col justify-center gap-2 my-1">
-        <div className="grid grid-cols-2 gap-2">
+      <div className="flex-1 flex flex-col justify-around gap-3 my-1 min-h-0">
+        <div className="grid grid-cols-2 gap-3 flex-1">
           {/* 1. Emergencia */}
-          <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
-            <span className="text-[9px] font-bold uppercase text-gray-300">1. EMERGENCIA</span>
+          <div className="bg-[#1C1E24] border-4 border-black p-3 sm:p-4 flex flex-col items-center justify-between shadow-brutal">
+            <span className="text-xs sm:text-sm font-black uppercase text-gray-200 tracking-wider">1. EMERGENCIA</span>
             <button
               onClick={handleButtonTap}
-              className="w-14 h-14 rounded-full bg-[#FF2A2A] hover:bg-red-500 active:scale-95 active:translate-y-1 border-3 border-black shadow-brutal flex items-center justify-center my-1 transition-all cursor-pointer"
+              className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#FF2A2A] hover:bg-red-500 active:scale-95 active:translate-y-1 border-4 border-black shadow-brutal flex items-center justify-center my-2 transition-all cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-full border-2 border-red-300 bg-red-600 flex items-center justify-center">
-                <Flame className="w-4 h-4 text-white" />
+              <div className="w-11 h-11 rounded-full border-2 border-red-300 bg-red-600 flex items-center justify-center shadow-inner">
+                <Flame className="w-6 h-6 text-white" />
               </div>
             </button>
-            <span className="text-[8px] text-gray-500 uppercase font-mono tracking-wider">SETA AZ-5</span>
+            <span className="text-[10px] text-gray-400 uppercase font-mono tracking-wider font-bold">SETA AZ-5</span>
           </div>
 
           {/* 2. Válvula */}
-          <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
-            <span className="text-[9px] font-bold uppercase text-gray-300">2. VÁLVULA</span>
+          <div className="bg-[#1C1E24] border-4 border-black p-3 sm:p-4 flex flex-col items-center justify-between shadow-brutal">
+            <span className="text-xs sm:text-sm font-black uppercase text-gray-200 tracking-wider">2. VÁLVULA</span>
             <button
               onMouseDown={handleValveStart}
               onMouseUp={handleValveEnd}
               onTouchStart={handleValveStart}
               onTouchEnd={handleValveEnd}
-              className={`w-14 h-14 rounded-full border-3 border-black flex items-center justify-center my-1 shadow-brutal transition-all cursor-pointer ${
+              className={`w-18 h-18 sm:w-20 sm:h-20 rounded-full border-4 border-black flex items-center justify-center my-2 shadow-brutal transition-all cursor-pointer ${
                 valveHolding ? 'bg-[#00FF66] scale-105' : 'bg-[#FFD600] active:scale-95'
               }`}
             >
-              <RotateCw className={`w-6 h-6 text-black ${valveHolding ? 'animate-spin' : ''}`} />
+              <RotateCw className={`w-8 h-8 text-black ${valveHolding ? 'animate-spin' : ''}`} />
             </button>
-            <div className="w-full bg-black h-1.5 border border-gray-700">
-              <div className="bg-[#00FF66] h-full transition-all" style={{ width: `${valveProgress}%` }} />
+            <div className="w-full bg-black h-2.5 border-2 border-gray-700 overflow-hidden">
+              <div className="bg-[#00FF66] h-full transition-all duration-75" style={{ width: `${valveProgress}%` }} />
             </div>
           </div>
 
           {/* 3. Palanca */}
-          <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
-            <span className="text-[9px] font-bold uppercase text-gray-300">3. PALANCA</span>
-            <div className="w-full flex items-center gap-1.5 my-1.5">
-              <Sliders className="w-3.5 h-3.5 text-[#00F0FF] shrink-0" />
+          <div className="bg-[#1C1E24] border-4 border-black p-3 sm:p-4 flex flex-col items-center justify-between shadow-brutal">
+            <span className="text-xs sm:text-sm font-black uppercase text-gray-200 tracking-wider">3. PALANCA</span>
+            <div className="w-full flex items-center gap-2 my-auto">
+              <Sliders className="w-5 h-5 text-[#00F0FF] shrink-0" />
               <input
                 type="range"
                 min="0"
@@ -220,24 +220,28 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
                 step="5"
                 value={sliderValue}
                 onChange={handleSliderChange}
-                className="w-full accent-[#00F0FF] cursor-pointer h-2.5 bg-black border border-gray-600 rounded-none"
+                className="w-full accent-[#00F0FF] cursor-pointer h-3.5 bg-black border-2 border-gray-600 rounded-none"
               />
             </div>
-            <span className="text-[8px] font-mono text-gray-500 font-bold uppercase tracking-wider">REGULADOR</span>
+            <div className="flex items-center justify-between w-full text-[10px] font-mono text-gray-400 font-bold uppercase">
+              <span>0%</span>
+              <span className="text-[#00F0FF] font-black">{sliderValue}%</span>
+              <span>100%</span>
+            </div>
           </div>
 
           {/* 4. Bomba */}
-          <div className="bg-[#1C1E24] border-3 border-black p-2.5 flex flex-col items-center justify-between shadow-brutal">
-            <span className="text-[9px] font-bold uppercase text-gray-300">4. BOMBA</span>
+          <div className="bg-[#1C1E24] border-4 border-black p-3 sm:p-4 flex flex-col items-center justify-between shadow-brutal">
+            <span className="text-xs sm:text-sm font-black uppercase text-gray-200 tracking-wider">4. BOMBA</span>
             <button
               onClick={handlePumpTap}
-              className="w-full py-1.5 bg-[#2A2D37] hover:bg-[#3F4452] active:scale-95 border-2 border-black text-[11px] font-black uppercase text-[#FFD600] shadow-brutal-sm my-1 flex items-center justify-center gap-1"
+              className="w-full py-2.5 sm:py-3 bg-[#2A2D37] hover:bg-[#3F4452] active:scale-95 border-3 border-black text-xs sm:text-sm font-black uppercase text-[#FFD600] shadow-brutal-sm my-auto flex items-center justify-center gap-1.5"
             >
               ¡BOMBEAR!
             </button>
-            <div className="flex gap-1">
+            <div className="flex gap-1.5 justify-center w-full">
               {[1, 2, 3, 4, 5].map((p) => (
-                <div key={p} className={`w-2.5 h-1.5 border border-black ${pumpCount >= p ? 'bg-[#FFD600]' : 'bg-black'}`} />
+                <div key={p} className={`flex-1 h-3 border-2 border-black transition-all ${pumpCount >= p ? 'bg-[#FFD600]' : 'bg-black'}`} />
               ))}
             </div>
           </div>
@@ -246,7 +250,7 @@ export const Round1ChainReaction: React.FC<Round1Props> = ({
 
       {/* Real-time feedback alert */}
       {lastActionFeedback && (
-        <div className="bg-[#00FF66] border-2 border-black p-1.5 text-black font-black text-xs text-center uppercase tracking-widest shadow-brutal">
+        <div className="bg-[#00FF66] border-3 border-black p-2 text-black font-black text-sm text-center uppercase tracking-widest shadow-brutal shrink-0">
           {lastActionFeedback}
         </div>
       )}

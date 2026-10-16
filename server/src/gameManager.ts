@@ -679,11 +679,7 @@ export class GameManager {
       };
     });
 
-    // Options: Exactly 12 options total distributed across players
-    // If totalQuestionsCount === 6: 6 correct + 1 distractor each = 12 options
-    // If totalQuestionsCount === 4: 4 correct + 2 distractors each = 12 options
-    const distractorsPerQuestion = totalQuestionsCount === 6 ? 1 : 2;
-
+    // Options: Exactly 3 options per question (1 correct + 2 distractors)
     const rawOptions: { text: string; isCorrect: boolean; targetQuestionId?: string }[] = [];
     selectedQuestionsRaw.forEach((q, idx) => {
       const qId = `q_${idx}`;
@@ -693,7 +689,7 @@ export class GameManager {
         targetQuestionId: qId
       });
       const shuffledDistractors = [...q.distractors].sort(() => Math.random() - 0.5);
-      for (let d = 0; d < distractorsPerQuestion && d < shuffledDistractors.length; d++) {
+      for (let d = 0; d < 2 && d < shuffledDistractors.length; d++) {
         rawOptions.push({
           text: shuffledDistractors[d],
           isCorrect: false

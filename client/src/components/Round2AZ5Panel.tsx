@@ -131,39 +131,39 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
 
             return (
               <>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   {/* Core Color */}
-                  <div className="bg-[#1C1E24] border-3 border-black p-2 text-center shadow-brutal">
-                    <span className="text-[9px] uppercase font-bold text-gray-400 block mb-1">
+                  <div className="bg-[#1C1E24] border-4 border-black p-2.5 text-center shadow-brutal">
+                    <span className="text-xs uppercase font-black text-gray-300 block mb-1">
                       ESTADO DEL NÚCLEO
                     </span>
-                    <div className={`py-1 px-2 border-2 text-xs font-black uppercase tracking-widest ${getCoreColorClass(displayColor)}`}>
+                    <div className={`py-1.5 px-2 border-2 text-sm sm:text-base font-black uppercase tracking-widest ${getCoreColorClass(displayColor)}`}>
                       {displayColor}
                     </div>
                   </div>
 
                   {/* Pressure Manometer */}
-                  <div className="bg-[#1C1E24] border-3 border-black p-2 text-center shadow-brutal">
-                    <span className="text-[9px] uppercase font-bold text-gray-400 block mb-1">
-                      PRESIÓN DEL RECEPTÁCULO
+                  <div className="bg-[#1C1E24] border-4 border-black p-2.5 text-center shadow-brutal">
+                    <span className="text-xs uppercase font-black text-gray-300 block mb-1">
+                      PRESIÓN ACTUAL
                     </span>
-                    <div className="flex items-center justify-center gap-1 text-[#00F0FF] font-black text-base font-mono">
-                      <Gauge className="w-4 h-4" />
+                    <div className="flex items-center justify-center gap-1.5 text-[#00F0FF] font-black text-lg sm:text-xl font-mono">
+                      <Gauge className="w-5 h-5" />
                       {displayPressure} BAR
                     </div>
                   </div>
                 </div>
 
                 {/* Physical Switches */}
-                <div className="bg-[#1C1E24] border-4 border-black p-3 shadow-brutal">
-                  <div className="text-[10px] font-black uppercase text-gray-300 mb-2 flex items-center justify-between">
+                <div className="bg-[#1C1E24] border-4 border-black p-3 sm:p-4 shadow-brutal flex-1 flex flex-col justify-around">
+                  <div className="text-xs font-black uppercase text-gray-200 mb-2 flex items-center justify-between">
                     <span>
-                      {isDual ? `TUS MANDOS: ${activeConsole?.title || 'TU CONSOLA'}` : 'TODAS LAS VÁLVULAS (ALFA / BETA / GAMMA / DELTA)'}
+                      {isDual ? `TUS MANDOS: ${activeConsole?.title || 'TU CONSOLA'}` : 'VÁLVULAS DE ALIVIO TÉRMICO:'}
                     </span>
-                    <span className="text-gray-400 text-[9px] font-mono">SISTEMA AZ-5</span>
+                    <span className="text-[#00FF66] text-xs font-mono font-black">SISTEMA AZ-5</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2.5">
                     {(['alfa', 'beta', 'gamma', 'delta'] as const).map((sw) => {
                       const isOn = displaySwitches[sw];
 
@@ -173,19 +173,19 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
                           type="button"
                           disabled={isThisConsoleStabilized}
                           onClick={() => handleSwitchToggle(sw)}
-                          className={`p-2.5 border-3 border-black font-black uppercase flex flex-col items-center justify-between shadow-brutal-sm transition-all ${
+                          className={`p-3 sm:p-3.5 border-3 border-black font-black uppercase flex flex-col items-center justify-between shadow-brutal-sm transition-all min-h-[72px] sm:min-h-[80px] ${
                             isThisConsoleStabilized
                               ? 'opacity-60 cursor-not-allowed bg-black/60 text-gray-500'
                               : isOn
                               ? 'bg-[#00FF66] text-black shadow-glow-green active:translate-y-1'
-                              : 'bg-[#2A2D37] text-gray-400 active:translate-y-1'
+                              : 'bg-[#2A2D37] text-gray-400 active:translate-y-1 hover:bg-[#383C4A]'
                           }`}
                         >
-                          <div className="text-xs font-black tracking-wider">
+                          <div className="text-xs sm:text-sm font-black tracking-wider">
                             VÁLVULA {sw.toUpperCase()}
                           </div>
                           <div
-                            className={`w-full mt-1.5 py-0.5 text-center text-[9px] font-black border border-black ${
+                            className={`w-full mt-2 py-1 text-center text-[10px] sm:text-xs font-black border-2 border-black ${
                               isOn ? 'bg-black text-[#00FF66]' : 'bg-black/60 text-gray-500'
                             }`}
                           >
@@ -199,16 +199,16 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
 
                 {/* Big AZ-5 Stabilize Button */}
                 {isThisConsoleStabilized ? (
-                  <div className="bg-[#00FF66] border-4 border-black p-3 text-center text-black font-black text-sm uppercase shadow-brutal flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-5 h-5" />
+                  <div className="bg-[#00FF66] border-4 border-black p-4 text-center text-black font-black text-sm sm:text-base uppercase shadow-brutal flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-6 h-6" />
                     ¡CONSOLA ESTABILIZADA! ESPERANDO A TU COMPAÑERO...
                   </div>
                 ) : (
                   <div>
-                    <div className="hazard-stripes-red w-full h-2 border border-black mb-1" />
+                    <div className="hazard-stripes-red w-full h-2.5 border border-black mb-1.5" />
                     <button
                       onClick={handleStabilize}
-                      className="w-full bg-[#FF2A2A] hover:bg-red-600 active:scale-98 active:translate-y-1 text-white font-black uppercase py-3.5 px-3 border-4 border-black text-sm tracking-wider flex items-center justify-center gap-2 shadow-brutal transition-all"
+                      className="w-full bg-[#FF2A2A] hover:bg-red-600 active:scale-98 active:translate-y-1 text-white font-black uppercase py-4 px-4 border-4 border-black text-sm sm:text-base tracking-wider flex items-center justify-center gap-2 shadow-brutal transition-all"
                     >
                       <Zap className="w-5 h-5 fill-white animate-pulse" />
                       {isDual ? 'ESTABILIZAR MI CONSOLA' : 'DISPARAR PROTOCOLO AZ-5 (ESTABILIZAR)'}
@@ -223,16 +223,16 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
 
       {/* --- VISTAS DE INGENIEROS DE MANUAL --- */}
       {isAnyIngeniero && (
-        <div className="my-1 flex-1 flex flex-col justify-between gap-2.5">
+        <div className="my-1 flex-1 flex flex-col justify-between gap-3">
           {/* Banner depending on which engineer */}
-          <div className="bg-[#FFD600] text-black border-4 border-black p-2.5 shadow-brutal text-center">
-            <div className="flex items-center justify-center gap-1.5 text-xs font-black uppercase">
-              <BookOpen className="w-4 h-4" />
+          <div className="bg-[#FFD600] text-black border-4 border-black p-3 shadow-brutal text-center">
+            <div className="flex items-center justify-center gap-2 text-sm sm:text-base font-black uppercase">
+              <BookOpen className="w-5 h-5" />
               {isIngenieroTotal && 'MANUAL GENERAL DE ESTABILIZACIÓN'}
               {isIngenieroA && 'MANUAL PARTE A: MATRIZ DE FASES POR COLOR'}
               {isIngenieroB && 'MANUAL PARTE B: COMBINACIÓN DE VÁLVULAS'}
             </div>
-            <p className="text-[10px] font-bold text-gray-900 mt-1 leading-tight font-mono">
+            <p className="text-xs font-bold text-gray-900 mt-1 leading-tight font-mono">
               {isDual
                 ? 'PROCEDIMIENTO OPERATIVO PARA CENTRALES CON DOBLE CIRCUITO INDEPENDIENTE'
                 : 'PROCEDIMIENTO TÉCNICO OFICIAL DE ESTABILIZACIÓN RBMK-1000'
@@ -241,37 +241,37 @@ export const Round2AZ5Panel: React.FC<Round2Props> = ({
           </div>
 
           {/* Rules Document Box */}
-          <div className="bg-[#1C1E24] border-4 border-black p-3 shadow-brutal flex-1 overflow-y-auto">
-            <div className="flex items-center justify-between text-[10px] uppercase font-bold text-gray-400 mb-2 border-b border-gray-700 pb-1">
+          <div className="bg-[#1C1E24] border-4 border-black p-3.5 shadow-brutal flex-1 overflow-y-auto">
+            <div className="flex items-center justify-between text-xs uppercase font-black text-gray-300 mb-2.5 border-b border-gray-700 pb-1.5">
               <span>DOCUMENTO TÉCNICO OFICIAL:</span>
-              <span className="text-[#00FF66] font-mono">SECRETO DE ESTADO</span>
+              <span className="text-[#00FF66] font-mono font-bold">SECRETO DE ESTADO</span>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5">
               {/* If Ingeniero Total (2 players) */}
               {isIngenieroTotal && round2.manualFull.map((ruleText, idx) => (
-                <div key={idx} className="bg-black/70 border border-gray-700 p-2 text-[11px] font-mono leading-tight shadow-brutal-sm text-gray-200">
+                <div key={idx} className="bg-black/80 border-2 border-gray-700 p-3 text-xs sm:text-sm font-mono leading-relaxed shadow-brutal-sm text-gray-100 font-bold">
                   {ruleText}
                 </div>
               ))}
 
               {/* If Ingeniero A (3-4 players) */}
               {isIngenieroA && round2.manualPartA.map((ruleText, idx) => (
-                <div key={idx} className="bg-black/70 border border-gray-700 p-2 text-[11px] font-mono leading-tight shadow-brutal-sm text-[#FFD600]">
+                <div key={idx} className="bg-black/80 border-2 border-gray-700 p-3 text-xs sm:text-sm font-mono leading-relaxed shadow-brutal-sm text-[#FFD600] font-bold">
                   {ruleText}
                 </div>
               ))}
 
               {/* If Ingeniero B (3-4 players) */}
               {isIngenieroB && round2.manualPartB.map((ruleText, idx) => (
-                <div key={idx} className="bg-black/70 border border-gray-700 p-2 text-[11px] font-mono leading-tight shadow-brutal-sm text-[#00F0FF]">
+                <div key={idx} className="bg-black/80 border-2 border-gray-700 p-3 text-xs sm:text-sm font-mono leading-relaxed shadow-brutal-sm text-[#00F0FF] font-bold">
                   {ruleText}
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="bg-[#1C1E24] border-2 border-gray-700 p-2 text-center text-[10px] text-gray-400 font-mono uppercase">
+          <div className="bg-[#1C1E24] border-2 border-gray-700 p-2 text-center text-xs text-gray-400 font-mono uppercase font-bold">
             REGISTRO TÉCNICO DE COMUNICACIONES INTERCOM
           </div>
         </div>
