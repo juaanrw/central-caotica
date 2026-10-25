@@ -18,10 +18,37 @@ export interface Player {
   isHost: boolean;
   isBot?: boolean;
   role?: PlayerRole;
+  teamId?: string;
   stats: PlayerStats;
 }
 
-export type GamePhase = 'LOBBY' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'ROUND_4' | 'ROUND_5' | 'SUMMARY';
+export type GameMode = 'COOP' | 'COMPETITIVE';
+
+export interface TeamInfo {
+  id: string;
+  name: string;
+  color: string;
+  playerIds: string[];
+  playerNames: string[];
+  round1Scores: number;
+  round2Scores: number;
+  round3Scores: number;
+  round4Scores: number;
+  round5Scores: number;
+  totalScore: number;
+  currentRoundCompleted: boolean;
+  currentStability: number;
+}
+
+export type GamePhase = 
+  | 'LOBBY' 
+  | 'ROUND_INTRO'
+  | 'ROUND_1' 
+  | 'ROUND_2' 
+  | 'ROUND_3' 
+  | 'ROUND_4' 
+  | 'ROUND_5' 
+  | 'SUMMARY';
 
 export type ActionType = 'BUTTON' | 'VALVE' | 'SLIDER' | 'PUMP';
 
@@ -217,6 +244,20 @@ export interface AwardInfo {
   description: string;
 }
 
+export interface TeamRanking {
+  teamId: string;
+  teamName: string;
+  teamColor: string;
+  playerNames: string[];
+  round1Scores: number;
+  round2Scores: number;
+  round3Scores: number;
+  round4Scores: number;
+  round5Scores: number;
+  totalScore: number;
+  rankPosition: number;
+}
+
 export interface GameSummary {
   totalScore: number;
   rankTitle: string;
@@ -226,16 +267,26 @@ export interface GameSummary {
   playerStats: {
     id: string;
     name: string;
+    teamId?: string;
+    teamName?: string;
+    teamColor?: string;
     avgReactionMs: number;
     actionsCompleted: number;
     mistakes: number;
   }[];
+  teamRankings?: TeamRanking[];
 }
 
 export interface RoomState {
   code: string;
   players: Player[];
+  allPlayers?: Player[];
   phase: GamePhase;
+  upcomingRound?: 1 | 2 | 3 | 4 | 5;
+  lastCompletedRound?: 1 | 2 | 3 | 4 | 5;
+  gameMode: GameMode;
+  teams: TeamInfo[];
+  myTeamId?: string;
   currentStability: number;
   round1Scores: number;
   round2Scores: number;

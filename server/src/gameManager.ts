@@ -12,13 +12,14 @@ import {
   MazeCoord,
   ConveyorItem,
   ConveyorStation,
-  ConveyorCategory,
   ConveyorDestinationId,
   DistributedQuestion,
   DistributedOption,
-  Round3State,
   QuestionAnswerType,
-  AwardInfo
+  AwardInfo,
+  GameMode,
+  TeamInfo,
+  TeamRanking
 } from './types';
 import { 
   CATEGORIZED_TRIVIA_DB, 
@@ -31,6 +32,13 @@ import {
   CONVEYOR_ITEMS_POOL,
   MAZE_BLUEPRINTS
 } from './questions';
+
+const TEAM_PRESETS: { id: string; name: string; color: string }[] = [
+  { id: 'TEAM_1', name: 'EQUIPO ALFA', color: '#FF2A2A' },
+  { id: 'TEAM_2', name: 'EQUIPO BETA', color: '#00F0FF' },
+  { id: 'TEAM_3', name: 'EQUIPO GAMMA', color: '#00FF66' },
+  { id: 'TEAM_4', name: 'EQUIPO DELTA', color: '#FFD600' }
+];
 
 const ACTIONS: { type: ActionType; title: string; instructionPhrase: string }[] = [
   {
@@ -67,9 +75,176 @@ export class GameManager {
   }
 
   private emit(room: RoomState, event: string, data?: any) {
-    if (this.broadcaster) {
-      this.broadcaster(room, event, data);
+    if (!this.broadcaster) return;
+
+    if (room.code.includes('__')) {
+      const [parentCode, teamId] = room.code.split('__');
+      const parentRoom = this.rooms.get(parentCode);
+      if (!parentRoom) return;
+
+      const team = parentRoom.teams.find(t => t.id === teamId);
+      if (team) {
+        team.currentStability = room.currentStability;
+      }
+
+      if (event === 'stateUpdate') {
+        this.broadcaster(parentRoom, 'stateUpdate', parentRoom);
+      } else {
+        this.broadcaster(room, event, data);
+      }
+      return;
     }
+
+    this.broadcaster(room, event, data);
+  }
+
+  public getPlayerRoomView(roomCode: string, playerId: string): RoomState | null {
+    const parentRoom = this.rooms.get(roomCode.toUpperCase());
+    if (!parentRoom) return null;
+
+    if (
+      parentRoom.gameMode === 'COMPETITIVE' &&
+      (parentRoom.phase === 'ROUND_1' ||
+        parentRoom.phase === 'ROUND_2' ||
+        parentRoom.phase === 'ROUND_3' ||
+        parentRoom.phase === 'ROUND_4' ||
+        parentRoom.phase === 'ROUND_5')
+    ) {
+      const player = parentRoom.players.find(p => p.id === playerId);
+      const teamId = player?.teamId || parentRoom.teams[0]?.id;
+      const subRoom = teamId ? this.rooms.get(`${parentRoom.code}__${teamId}`) : undefined;
+      if (subRoom) {
+        return {
+          ...parentRoom,
+          allPlayers: parentRoom.players,
+          players: subRoom.players,
+          myTeamId: teamId,
+          currentStability: subRoom.currentStability,
+          roundStartTime: subRoom.roundStartTime,
+          botRadioMessage: subRoom.botRadioMessage,
+          round1: subRoom.round1,
+          round2: subRoom.round2,
+          round3: subRoom.round3,
+          round4: subRoom.round4,
+          round5: subRoom.round5
+        };
+      }
+    }
+
+    const player = parentRoom.players.find(p => p.id === playerId);
+    return {
+      ...parentRoom,
+      allPlayers: parentRoom.players,
+      myTeamId: player?.teamId
+    };
+  }
+
+  public resolveTargetRoomCode(roomCode: string, playerId: string): string {
+    const parentRoom = this.rooms.get(roomCode.toUpperCase());
+    if (!parentRoom) return roomCode;
+    if (parentRoom.gameMode === 'COMPETITIVE') {
+      const player = parentRoom.players.find(p => p.id === playerId);
+      if (player?.teamId && this.rooms.has(`${parentRoom.code}__${player.teamId}`)) {
+        return `${parentRoom.code}__${player.teamId}`;
+      }
+    }
+    return parentRoom.code;
+  }
+
+  private syncTeams(room: RoomState) {
+    if (room.players.length > 4 && room.gameMode === 'COOP') {
+      room.gameMode = 'COMPETITIVE';
+    }
+
+    const existingScores = new Map<string, TeamInfo>();
+    for (const t of room.teams || []) {
+      existingScores.set(t.id, t);
+    }
+
+    if (room.gameMode === 'COMPETITIVE') {
+      for (let i = 0; i < room.players.length; i++) {
+        const p = room.players[i];
+        const validTeam = TEAM_PRESETS.some(t => t.id === p.teamId);
+        if (!p.teamId || !validTeam) {
+          // Find team with < 4 players preferring TEAM_1 and TEAM_2 first
+          const counts: Record<string, number> = { TEAM_1: 0, TEAM_2: 0, TEAM_3: 0, TEAM_4: 0 };
+          for (const other of room.players) {
+            if (other.id !== p.id && other.teamId && counts[other.teamId] !== undefined) {
+              counts[other.teamId]++;
+            }
+          }
+          const numTeamsToUse = Math.max(2, Math.ceil(room.players.length / 4));
+          const candidateTeams = TEAM_PRESETS.slice(0, numTeamsToUse);
+          candidateTeams.sort((a, b) => counts[a.id] - counts[b.id]);
+          const chosen = candidateTeams.find(t => counts[t.id] < 4) || TEAM_PRESETS.find(t => counts[t.id] < 4) || TEAM_PRESETS[0];
+          p.teamId = chosen.id;
+        }
+      }
+    }
+
+    room.teams = TEAM_PRESETS.map(preset => {
+      const prev = existingScores.get(preset.id);
+      const members = room.players.filter(p => p.teamId === preset.id);
+      return {
+        id: preset.id,
+        name: preset.name,
+        color: preset.color,
+        playerIds: members.map(m => m.id),
+        playerNames: members.map(m => m.name),
+        round1Scores: prev?.round1Scores ?? 0,
+        round2Scores: prev?.round2Scores ?? 0,
+        round3Scores: prev?.round3Scores ?? 0,
+        round4Scores: prev?.round4Scores ?? 0,
+        round5Scores: prev?.round5Scores ?? 0,
+        totalScore: prev?.totalScore ?? 0,
+        currentRoundCompleted: prev?.currentRoundCompleted ?? false,
+        currentStability: prev?.currentStability ?? 1000
+      };
+    });
+  }
+
+  public setGameMode(roomCode: string, mode: GameMode): RoomState | null {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room || room.phase !== 'LOBBY') return null;
+    if (mode === 'COOP' && room.players.length > 4) {
+      return room;
+    }
+    room.gameMode = mode;
+    if (mode === 'COMPETITIVE') {
+      this.autoBalanceTeams(roomCode);
+    } else {
+      this.syncTeams(room);
+    }
+    return room;
+  }
+
+  public joinTeam(roomCode: string, playerId: string, teamId: string): RoomState | null {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room || room.phase !== 'LOBBY') return null;
+    if (!TEAM_PRESETS.some(t => t.id === teamId)) return null;
+
+    const currentMembers = room.players.filter(p => p.teamId === teamId);
+    if (currentMembers.length >= 4) return room;
+
+    const player = room.players.find(p => p.id === playerId);
+    if (player) {
+      player.teamId = teamId;
+      this.syncTeams(room);
+    }
+    return room;
+  }
+
+  public autoBalanceTeams(roomCode: string): RoomState | null {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room || room.phase !== 'LOBBY') return null;
+
+    const total = room.players.length;
+    const numTeams = Math.min(4, Math.max(2, Math.ceil(total / 4)));
+    for (let i = 0; i < total; i++) {
+      room.players[i].teamId = TEAM_PRESETS[i % numTeams].id;
+    }
+    this.syncTeams(room);
+    return room;
   }
 
   public createRoom(hostName: string, hostSocketId: string): RoomState {
@@ -78,6 +253,7 @@ export class GameManager {
       id: hostSocketId,
       name: hostName.trim() || 'Operario Jefe',
       isHost: true,
+      teamId: 'TEAM_1',
       stats: { reactionTimes: [], mistakes: 0, actionsCompleted: 0 }
     };
 
@@ -85,6 +261,8 @@ export class GameManager {
       code,
       players: [host],
       phase: 'LOBBY',
+      gameMode: 'COOP',
+      teams: [],
       currentStability: 1000,
       round1Scores: 0,
       round2Scores: 0,
@@ -95,6 +273,7 @@ export class GameManager {
       roundStartTime: Date.now()
     };
 
+    this.syncTeams(room);
     this.rooms.set(code, room);
     return room;
   }
@@ -110,8 +289,9 @@ export class GameManager {
       return { error: 'La partida ya está en curso en esta central.' };
     }
 
-    if (room.players.length >= 4) {
-      return { error: 'La sala está completa (máximo 4 operarios).' };
+    const maxPlayers = 16;
+    if (room.players.length >= maxPlayers) {
+      return { error: `La sala está completa (máximo ${maxPlayers} operarios).` };
     }
 
     const player: Player = {
@@ -122,14 +302,19 @@ export class GameManager {
     };
 
     room.players.push(player);
+    this.syncTeams(room);
     return { room };
   }
 
   public addBot(roomCode: string): RoomState | null {
     const room = this.rooms.get(roomCode);
-    if (!room || room.players.length >= 4) return null;
+    if (!room || room.players.length >= 16) return null;
 
-    const botNames = ['Bot Ivan', 'Bot Natasha', 'Bot Boris', 'Bot Svetlana'];
+    const botNames = [
+      'Bot Ivan', 'Bot Natasha', 'Bot Boris', 'Bot Svetlana',
+      'Bot Yuri', 'Bot Olga', 'Bot Dimitri', 'Bot Katya',
+      'Bot Nikolai', 'Bot Anya', 'Bot Sergei', 'Bot Elena'
+    ];
     const usedNames = new Set(room.players.map(p => p.name));
     const availableName = botNames.find(n => !usedNames.has(n)) || `Bot-${Math.floor(Math.random() * 900 + 100)}`;
 
@@ -142,6 +327,7 @@ export class GameManager {
     };
 
     room.players.push(botPlayer);
+    this.syncTeams(room);
     return room;
   }
 
@@ -149,16 +335,19 @@ export class GameManager {
     const room = this.rooms.get(roomCode);
     if (!room) return null;
     room.players = room.players.filter(p => p.id !== botId);
+    this.syncTeams(room);
     return room;
   }
 
   public removePlayer(socketId: string): { room?: RoomState; roomDeleted?: boolean } {
     for (const [code, room] of this.rooms.entries()) {
+      if (code.includes('__')) continue;
       const idx = room.players.findIndex(p => p.id === socketId);
       if (idx !== -1) {
         const removed = room.players.splice(idx, 1)[0];
         if (room.players.length === 0 || room.players.every(p => p.isBot)) {
           this.clearBotTimeouts(code);
+          this.cleanupSubRooms(code);
           this.rooms.delete(code);
           return { roomDeleted: true };
         }
@@ -166,10 +355,20 @@ export class GameManager {
           const newHost = room.players.find(p => !p.isBot) || room.players[0];
           newHost.isHost = true;
         }
+        this.syncTeams(room);
         return { room };
       }
     }
     return {};
+  }
+
+  private cleanupSubRooms(parentCode: string) {
+    for (const key of Array.from(this.rooms.keys())) {
+      if (key.startsWith(`${parentCode}__`)) {
+        this.clearBotTimeouts(key);
+        this.rooms.delete(key);
+      }
+    }
   }
 
   public getRoom(code: string): RoomState | undefined {
@@ -177,7 +376,8 @@ export class GameManager {
   }
 
   public getRoomBySocketId(socketId: string): RoomState | undefined {
-    for (const room of this.rooms.values()) {
+    for (const [code, room] of this.rooms.entries()) {
+      if (code.includes('__')) continue;
       if (room.players.some(p => p.id === socketId)) {
         return room;
       }
@@ -185,17 +385,26 @@ export class GameManager {
     return undefined;
   }
 
-  // --- GAME START & ROUND 1: REACCIÓN EN CADENA ---
+  // --- GAME START & ROUND INTRO / COMPETITIVE ORCHESTRATION ---
 
   public startGame(roomCode: string): RoomState | null {
     return this.startSpecificRound(roomCode, 1, false);
   }
 
   public startSpecificRound(roomCode: string, roundNumber: 1 | 2 | 3 | 4 | 5, singleRound: boolean = true): RoomState | null {
-    const room = this.rooms.get(roomCode);
+    const room = this.rooms.get(roomCode.toUpperCase());
     if (!room || room.players.length < 2) return null;
 
-    this.clearBotTimeouts(roomCode);
+    if (room.gameMode === 'COMPETITIVE') {
+      this.syncTeams(room);
+      const activeTeams = room.teams.filter(t => t.playerIds.length > 0);
+      if (activeTeams.length < 2 || activeTeams.some(t => t.playerIds.length < 2 || t.playerIds.length > 4)) {
+        return null;
+      }
+    }
+
+    this.clearBotTimeouts(room.code);
+    this.cleanupSubRooms(room.code);
     room.singleRoundMode = singleRound;
     room.currentStability = 1000;
     room.round1Scores = 0;
@@ -212,37 +421,192 @@ export class GameManager {
     room.round4 = undefined;
     room.round5 = undefined;
     room.summary = undefined;
+    room.lastCompletedRound = undefined;
+    room.upcomingRound = roundNumber;
 
-    // Reset player stats
+    // Reset player stats and team scores
     for (const p of room.players) {
       p.role = undefined;
       p.stats = { reactionTimes: [], mistakes: 0, actionsCompleted: 0 };
     }
-
-    if (roundNumber === 1) {
-      room.phase = 'ROUND_1';
-      this.initRound1Step(room, 1);
-    } else if (roundNumber === 2) {
-      this.initRound2(room);
-    } else if (roundNumber === 3) {
-      this.initRound3(room);
-    } else if (roundNumber === 4) {
-      this.initRound4(room);
-    } else if (roundNumber === 5) {
-      this.initRound5(room);
+    for (const t of room.teams) {
+      t.round1Scores = 0;
+      t.round2Scores = 0;
+      t.round3Scores = 0;
+      t.round4Scores = 0;
+      t.round5Scores = 0;
+      t.totalScore = 0;
+      t.currentRoundCompleted = false;
+      t.currentStability = 1000;
     }
 
+    room.phase = 'ROUND_INTRO';
     return room;
   }
 
-  private finishSingleOrNext(room: RoomState, nextRoundInit: () => void) {
-    if (room.singleRoundMode) {
-      room.totalScore = room.round1Scores + room.round2Scores + room.round3Scores + room.round4Scores + room.round5Scores;
+  public confirmRoundStart(roomCode: string): RoomState | null {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room || room.phase !== 'ROUND_INTRO' || !room.upcomingRound) return null;
+
+    const roundNumber = room.upcomingRound;
+    this.clearBotTimeouts(room.code);
+    this.cleanupSubRooms(room.code);
+
+    if (room.gameMode === 'COMPETITIVE') {
+      room.phase = `ROUND_${roundNumber}` as any;
+      room.roundStartTime = Date.now();
+
+      const activeTeams = room.teams.filter(t => t.playerIds.length >= 2);
+      for (const team of activeTeams) {
+        team.currentRoundCompleted = false;
+        team.currentStability = 1000;
+
+        const teamPlayers: Player[] = room.players
+          .filter(p => p.teamId === team.id)
+          .map(p => ({
+            ...p,
+            role: undefined,
+            stats: {
+              reactionTimes: [...p.stats.reactionTimes],
+              mistakes: p.stats.mistakes,
+              actionsCompleted: p.stats.actionsCompleted
+            }
+          }));
+
+        const subRoomCode = `${room.code}__${team.id}`;
+        const subRoom: RoomState = {
+          code: subRoomCode,
+          players: teamPlayers,
+          phase: `ROUND_${roundNumber}` as any,
+          gameMode: 'COOP',
+          teams: [],
+          currentStability: 1000,
+          round1Scores: team.round1Scores,
+          round2Scores: team.round2Scores,
+          round3Scores: team.round3Scores,
+          round4Scores: team.round4Scores,
+          round5Scores: team.round5Scores,
+          totalScore: team.totalScore,
+          roundStartTime: Date.now(),
+          singleRoundMode: room.singleRoundMode
+        };
+
+        this.rooms.set(subRoomCode, subRoom);
+        this.launchRoundOnRoom(subRoom, roundNumber);
+      }
+
+      return room;
+    }
+
+    this.launchRoundOnRoom(room, roundNumber);
+    return room;
+  }
+
+  private launchRoundOnRoom(targetRoom: RoomState, roundNumber: 1 | 2 | 3 | 4 | 5) {
+    if (roundNumber === 1) {
+      targetRoom.phase = 'ROUND_1';
+      targetRoom.currentStability = 1000;
+      targetRoom.roundStartTime = Date.now();
+      this.initRound1Step(targetRoom, 1);
+    } else if (roundNumber === 2) {
+      this.initRound2(targetRoom);
+    } else if (roundNumber === 3) {
+      this.initRound3(targetRoom);
+    } else if (roundNumber === 4) {
+      this.initRound4(targetRoom);
+    } else if (roundNumber === 5) {
+      this.initRound5(targetRoom);
+    }
+  }
+
+  private getRoundNumberFromPhase(phase: string): 1 | 2 | 3 | 4 | 5 {
+    if (phase === 'ROUND_2') return 2;
+    if (phase === 'ROUND_3') return 3;
+    if (phase === 'ROUND_4') return 4;
+    if (phase === 'ROUND_5') return 5;
+    return 1;
+  }
+
+  private finishSingleOrNext(room: RoomState, _nextRoundInit: () => void) {
+    const completedRound = this.getRoundNumberFromPhase(room.phase);
+
+    if (room.code.includes('__')) {
+      this.handleTeamRoundFinished(room, completedRound);
+      return;
+    }
+
+    this.clearBotTimeouts(room.code);
+    room.totalScore =
+      room.round1Scores +
+      room.round2Scores +
+      room.round3Scores +
+      room.round4Scores +
+      room.round5Scores;
+
+    if (room.singleRoundMode || completedRound === 5) {
       this.generateSummary(room);
       this.emit(room, 'gameCompleted', room.summary);
     } else {
-      nextRoundInit();
+      room.lastCompletedRound = completedRound;
+      room.upcomingRound = (completedRound + 1) as 1 | 2 | 3 | 4 | 5;
+      room.phase = 'ROUND_INTRO';
     }
+  }
+
+  private handleTeamRoundFinished(subRoom: RoomState, completedRound: 1 | 2 | 3 | 4 | 5) {
+    const [parentCode, teamId] = subRoom.code.split('__');
+    const parentRoom = this.rooms.get(parentCode);
+    if (!parentRoom) return;
+
+    this.clearBotTimeouts(subRoom.code);
+
+    const team = parentRoom.teams.find(t => t.id === teamId);
+    if (team) {
+      if (completedRound === 1) team.round1Scores = subRoom.round1Scores;
+      if (completedRound === 2) team.round2Scores = subRoom.round2Scores;
+      if (completedRound === 3) team.round3Scores = subRoom.round3Scores;
+      if (completedRound === 4) team.round4Scores = subRoom.round4Scores;
+      if (completedRound === 5) team.round5Scores = subRoom.round5Scores;
+
+      team.totalScore =
+        team.round1Scores +
+        team.round2Scores +
+        team.round3Scores +
+        team.round4Scores +
+        team.round5Scores;
+      team.currentRoundCompleted = true;
+      team.currentStability = subRoom.currentStability;
+    }
+
+    // Sync player stats back to parentRoom
+    for (const sp of subRoom.players) {
+      const mainPlayer = parentRoom.players.find(p => p.id === sp.id);
+      if (mainPlayer) {
+        mainPlayer.stats = {
+          reactionTimes: [...sp.stats.reactionTimes],
+          mistakes: sp.stats.mistakes,
+          actionsCompleted: sp.stats.actionsCompleted
+        };
+      }
+    }
+
+    const activeTeams = parentRoom.teams.filter(t => t.playerIds.length >= 2);
+    const allFinished = activeTeams.every(t => t.currentRoundCompleted);
+
+    if (allFinished) {
+      this.cleanupSubRooms(parentRoom.code);
+
+      if (parentRoom.singleRoundMode || completedRound === 5) {
+        this.generateSummary(parentRoom);
+        this.emit(parentRoom, 'gameCompleted', parentRoom.summary);
+      } else {
+        parentRoom.lastCompletedRound = completedRound;
+        parentRoom.upcomingRound = (completedRound + 1) as 1 | 2 | 3 | 4 | 5;
+        parentRoom.phase = 'ROUND_INTRO';
+      }
+    }
+
+    this.emit(parentRoom, 'stateUpdate', parentRoom);
   }
 
   private initRound1Step(room: RoomState, stepNumber: number) {
@@ -1403,8 +1767,7 @@ export class GameManager {
       }
 
       this.emit(room, 'roundCompleted', { round: 5, score: room.round5Scores });
-      this.generateSummary(room);
-      this.emit(room, 'gameCompleted', room.summary);
+      this.finishSingleOrNext(room, () => {});
       this.emit(room, 'stateUpdate', room);
       return true;
     }
@@ -1419,7 +1782,30 @@ export class GameManager {
 
   private generateSummary(room: RoomState) {
     this.clearBotTimeouts(room.code);
+    this.cleanupSubRooms(room.code);
     room.phase = 'SUMMARY';
+
+    let teamRankings: TeamRanking[] | undefined = undefined;
+    if (room.gameMode === 'COMPETITIVE') {
+      const activeTeams = room.teams.filter(t => t.playerIds.length > 0);
+      const sorted = [...activeTeams].sort((a, b) => b.totalScore - a.totalScore);
+      teamRankings = sorted.map((t, index) => ({
+        teamId: t.id,
+        teamName: t.name,
+        teamColor: t.color,
+        playerNames: t.playerNames,
+        round1Scores: t.round1Scores,
+        round2Scores: t.round2Scores,
+        round3Scores: t.round3Scores,
+        round4Scores: t.round4Scores,
+        round5Scores: t.round5Scores,
+        totalScore: t.totalScore,
+        rankPosition: index + 1
+      }));
+      if (teamRankings.length > 0) {
+        room.totalScore = teamRankings[0].totalScore;
+      }
+    }
 
     const total = room.totalScore;
     const isSingle = !!room.singleRoundMode;
@@ -1430,7 +1816,12 @@ export class GameManager {
     let rankSubtitle = '';
     let rankBadge = '🎖️';
 
-    if (total >= tHero) {
+    if (room.gameMode === 'COMPETITIVE' && teamRankings && teamRankings.length > 0) {
+      const winner = teamRankings[0];
+      rankBadge = '🏆';
+      rankTitle = `VICTORIA: ${winner.teamName}`;
+      rankSubtitle = `¡${winner.teamName} (${winner.playerNames.join(', ')}) se impuso con ${winner.totalScore} PTS en la competición nuclear!`;
+    } else if (total >= tHero) {
       rankBadge = '🎖️';
       rankTitle = 'HÉROES DE LA UNIÓN SOVIÉTICA';
       rankSubtitle = '¡El reactor no estalló! Lenin en persona os concedería la Orden de la Bandera Roja. Recibiréis ración doble de té.';
@@ -1453,9 +1844,13 @@ export class GameManager {
       const avg = validTimes.length > 0 
         ? Math.round(validTimes.reduce((a, b) => a + b, 0) / validTimes.length)
         : 0;
+      const teamObj = room.teams.find(t => t.id === p.teamId);
       return {
         id: p.id,
         name: p.name,
+        teamId: p.teamId,
+        teamName: teamObj?.name,
+        teamColor: teamObj?.color,
         avgReactionMs: avg,
         actionsCompleted: p.stats.actionsCompleted,
         mistakes: p.stats.mistakes
@@ -1514,15 +1909,17 @@ export class GameManager {
       rankSubtitle,
       rankBadge,
       awards,
-      playerStats: playerTelemetry
+      playerStats: playerTelemetry,
+      teamRankings
     };
   }
 
   public restartGame(roomCode: string): RoomState | null {
-    const room = this.rooms.get(roomCode);
+    const room = this.rooms.get(roomCode.toUpperCase());
     if (!room) return null;
 
-    this.clearBotTimeouts(roomCode);
+    this.clearBotTimeouts(room.code);
+    this.cleanupSubRooms(room.code);
     room.phase = 'LOBBY';
     room.currentStability = 1000;
     room.round1Scores = 0;
@@ -1538,10 +1935,23 @@ export class GameManager {
     room.round5 = undefined;
     room.summary = undefined;
     room.botRadioMessage = undefined;
+    room.upcomingRound = undefined;
+    room.lastCompletedRound = undefined;
 
     for (const p of room.players) {
       p.role = undefined;
       p.stats = { reactionTimes: [], mistakes: 0, actionsCompleted: 0 };
+    }
+    this.syncTeams(room);
+    for (const t of room.teams) {
+      t.round1Scores = 0;
+      t.round2Scores = 0;
+      t.round3Scores = 0;
+      t.round4Scores = 0;
+      t.round5Scores = 0;
+      t.totalScore = 0;
+      t.currentRoundCompleted = false;
+      t.currentStability = 1000;
     }
 
     return room;

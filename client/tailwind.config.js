@@ -21,8 +21,9 @@ export default {
         }
       },
       fontFamily: {
-        mono: ['"Courier New"', 'Courier', 'monospace', 'ui-monospace'],
-        display: ['"Impact"', 'sans-serif']
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'monospace'],
+        display: ['"Impact"', 'system-ui', 'sans-serif']
       },
       boxShadow: {
         'brutal': '4px 4px 0px 0px #000000',

@@ -197,11 +197,11 @@ export const Round4ConveyorBelt: React.FC<Round4Props> = ({
                         : 'border-gray-800 bg-[#1C1E24]/80'
                     }`}
                   >
-                    <div className="text-[8px] font-bold truncate text-gray-300">
+                    <div className="text-[10px] font-bold truncate text-gray-200">
                       {isMe ? '👉 TÚ' : st.playerName || st.title}
                     </div>
                     <div 
-                      className="text-[9px] font-extrabold truncate uppercase mt-0.5"
+                      className="text-[10px] font-black truncate uppercase mt-0.5"
                       style={{ color: st.category.color }}
                     >
                       {st.category.shortName}
@@ -297,7 +297,7 @@ export const Round4ConveyorBelt: React.FC<Round4Props> = ({
                   >
                     {currentItem.categoryName}
                   </span>
-                  <h3 className="text-lg font-black text-white leading-snug uppercase tracking-tight truncate">
+                  <h3 className="text-lg font-black text-white leading-tight uppercase tracking-tight break-words">
                     {currentItem.name}
                   </h3>
                 </div>

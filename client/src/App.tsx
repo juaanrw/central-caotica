@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { socket } from './socket';
-import { RoomState, ActionType, MazeDirection } from './types';
+import { RoomState, ActionType, MazeDirection, GameMode } from './types';
 import { sound } from './soundEngine';
 import { Header } from './components/Header';
 import { JoinCreateScreen } from './components/JoinCreateScreen';
 import { LobbyScreen } from './components/LobbyScreen';
+import { RoundIntroScreen } from './components/RoundIntroScreen';
+import { TeamWaitingOverlay } from './components/TeamWaitingOverlay';
 import { Round1ChainReaction } from './components/Round1ChainReaction';
 import { Round2AZ5Panel } from './components/Round2AZ5Panel';
 import { Round3MinistryCall } from './components/Round3MinistryCall';
@@ -134,6 +136,24 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleSetGameMode = (mode: GameMode) => {
+    if (room) {
+      socket.emit('setGameMode', { roomCode: room.code, mode });
+    }
+  };
+
+  const handleJoinTeam = (teamId: string) => {
+    if (room) {
+      socket.emit('joinTeam', { roomCode: room.code, teamId });
+    }
+  };
+
+  const handleAutoBalanceTeams = () => {
+    if (room) {
+      socket.emit('autoBalanceTeams', { roomCode: room.code });
+    }
+  };
+
   const handleStartGame = () => {
     if (room) {
       socket.emit('startGame', { roomCode: room.code });
@@ -143,6 +163,12 @@ export const App: React.FC = () => {
   const handleStartSpecificRound = (roundNumber: 1 | 2 | 3 | 4 | 5) => {
     if (room) {
       socket.emit('startSpecificRound', { roomCode: room.code, roundNumber, singleRound: true });
+    }
+  };
+
+  const handleConfirmRoundStart = () => {
+    if (room) {
+      socket.emit('confirmRoundStart', { roomCode: room.code });
     }
   };
 
@@ -188,15 +214,33 @@ export const App: React.FC = () => {
     }
   };
 
+  const myTeam =
+    room?.gameMode === 'COMPETITIVE'
+      ? room.teams?.find(t => t.playerIds.includes(socketId))
+      : undefined;
+
+  const isWaitingForOtherTeams =
+    !!(
+      room &&
+      room.gameMode === 'COMPETITIVE' &&
+      myTeam?.currentRoundCompleted &&
+      (room.phase === 'ROUND_1' ||
+        room.phase === 'ROUND_2' ||
+        room.phase === 'ROUND_3' ||
+        room.phase === 'ROUND_4' ||
+        room.phase === 'ROUND_5')
+    );
+
   return (
     <div className={`h-full w-full flex flex-col bg-[#121316] relative overflow-hidden ${isShaking ? 'animate-shake' : ''}`}>
-      {/* CRT Scanline overlay effect */}
+      {/* Subtle CRT Scanline overlay effect */}
       <div className="absolute inset-0 crt-scanlines z-20 pointer-events-none" />
 
       {/* Main Header */}
       <Header
         room={room}
         playerName={playerName}
+        currentSocketId={socketId}
         onStartSpecificRound={handleStartSpecificRound}
         onReturnToLobby={handleRestartGame}
       />
@@ -220,12 +264,30 @@ export const App: React.FC = () => {
             currentSocketId={socketId}
             onAddBot={handleAddBot}
             onRemoveBot={handleRemoveBot}
+            onSetGameMode={handleSetGameMode}
+            onJoinTeam={handleJoinTeam}
+            onAutoBalanceTeams={handleAutoBalanceTeams}
             onStartGame={handleStartGame}
             onStartSpecificRound={handleStartSpecificRound}
           />
         )}
 
-        {room && room.phase === 'ROUND_1' && (
+        {room && room.phase === 'ROUND_INTRO' && (
+          <RoundIntroScreen
+            room={room}
+            currentSocketId={socketId}
+            onConfirmStart={handleConfirmRoundStart}
+          />
+        )}
+
+        {room && isWaitingForOtherTeams && (
+          <TeamWaitingOverlay
+            room={room}
+            currentSocketId={socketId}
+          />
+        )}
+
+        {room && !isWaitingForOtherTeams && room.phase === 'ROUND_1' && (
           <Round1ChainReaction
             room={room}
             currentSocketId={socketId}
@@ -233,7 +295,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {room && room.phase === 'ROUND_2' && (
+        {room && !isWaitingForOtherTeams && room.phase === 'ROUND_2' && (
           <Round2AZ5Panel
             room={room}
             currentSocketId={socketId}
@@ -242,7 +304,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {room && room.phase === 'ROUND_3' && (
+        {room && !isWaitingForOtherTeams && room.phase === 'ROUND_3' && (
           <Round3MinistryCall
             room={room}
             currentSocketId={socketId}
@@ -250,7 +312,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {room && room.phase === 'ROUND_4' && (
+        {room && !isWaitingForOtherTeams && room.phase === 'ROUND_4' && (
           <Round4ConveyorBelt
             room={room}
             currentSocketId={socketId}
@@ -258,7 +320,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {room && room.phase === 'ROUND_5' && (
+        {room && !isWaitingForOtherTeams && room.phase === 'ROUND_5' && (
           <Round5BlindMaze
             room={room}
             currentSocketId={socketId}
@@ -277,4 +339,3 @@ export const App: React.FC = () => {
     </div>
   );
 };
-
